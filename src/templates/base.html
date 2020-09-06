@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <title>{{ meta.title }} | coldy</title> {# Bloque para incluir titulo a cada vista #}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="{{ meta.description }}">
+    <meta name="robots" content="index, folow">
+    {% assets 'main_css' %}<link rel="stylesheet" href="{{ ASSET_URL }}">{% endassets %}
+    {%- block extra_styles %}{% endblock extra_styles %} {# Bloque para incluir estilos particulares para cada vista #}
+</head>
+<body>
+    {% set navigation_bar= [
+        ('/', 'home', 'Inicio'),
+        ('/sobre-mi', 'about', 'Sobre Mi'),
+        ('/blog/', 'blog', 'Blog'),
+        ('/servicios', 'Services', 'Mis Servicios')
+    ]-%}
+    {%- set active_page = active_page|default('home') -%}
+    <nav id="navbar">
+        <a href="/" class="logo"><div>Enni_Rios_Logo</div></a>
+        <div class="nav-zone">
+            {%- for href, id, name in navigation_bar -%}
+            <a {%- if id == active_page %} class="active" {%- endif %} href="{{ href }}">{{ name|e }}</a>
+            {%- endfor -%}
+        </div>
+    </nav>
+    {%- block page_content %}{%- endblock page_content %}
+    <footer id="footer"><h2>footer-here</h2></footer>
+</body>
+{% assets 'main_js' %}<script type="text/javascript" src="{{ ASSET_URL }}"></script>{% endassets %}
+{%- block extra_js %}{% endblock extra_js %} {# Bloque para incluir js particulares que no estén en el bundle #}
+</html>

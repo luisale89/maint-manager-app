@@ -1,0 +1,13 @@
+.env
+.venv
+.vscode
+.theia
+database.database
+database.db
+public/*
+dist/*
+migrations/*
+
+__pycache__/*
+.webassets-cache/
+bundle/
