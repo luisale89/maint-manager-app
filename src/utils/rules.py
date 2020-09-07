@@ -6,8 +6,8 @@ from webassets.filter import get_filter
 libsass = get_filter( #se crea un filtro a partir de libsass, con todas las configuraciones necesarias
     'libsass',
     style='nested', #parametro define el estilo de salida del bundle. En prod. debe ser 'compressed'
-    includes=['./src/static/scss'], #lista con las rutas que contienen los .scss importados en el index.scss
-    as_output=True
+    # includes=['./static/scss'], #lista con las rutas que contienen los .scss importados en el index.scss
+    # as_output=True
 )
 
 bundles = {
