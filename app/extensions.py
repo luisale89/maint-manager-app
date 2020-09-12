@@ -1,5 +1,5 @@
 from flask_assets import Environment
-from .utils.rules import bundles
+from .utils.assets import bundles
 
 assets = Environment()
 assets.register(bundles)
