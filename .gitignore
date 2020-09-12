@@ -8,6 +8,7 @@ public/*
 dist/*
 migrations/*
 
+__pycache__
 __pycache__/*
 .webassets-cache/
 bundle/

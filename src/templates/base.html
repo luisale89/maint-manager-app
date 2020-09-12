@@ -10,21 +10,6 @@
     {%- block extra_styles %}{% endblock extra_styles %} {# Bloque para incluir estilos particulares para cada vista #}
 </head>
 <body>
-    {% set navigation_bar= [
-        ('/', 'home', 'Inicio'),
-        ('/sobre-mi', 'about', 'Sobre Mi'),
-        ('/blog/', 'blog', 'Blog'),
-        ('/servicios', 'Services', 'Mis Servicios')
-    ]-%}
-    {%- set active_page = active_page|default('home') -%}
-    <nav id="navbar">
-        <a href="/" class="logo"><div>Enni_Rios_Logo</div></a>
-        <div class="nav-zone">
-            {%- for href, id, name in navigation_bar -%}
-            <a {%- if id == active_page %} class="active" {%- endif %} href="{{ href }}">{{ name|e }}</a>
-            {%- endfor -%}
-        </div>
-    </nav>
     {%- block page_content %}{%- endblock page_content %}
     <footer id="footer"><h2>footer-here</h2></footer>
 </body>
