@@ -20,4 +20,7 @@ flask-migrate = "*"
 python_version = "3.8"
 
 [scripts]
+start="flask run"
+init="flask db init"
+migrate="flask db migrate"
 upgrade="flask db upgrade"
