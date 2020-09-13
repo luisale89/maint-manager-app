@@ -11,8 +11,6 @@ class User(db.Model):
     password_hash = db.Column(db.String(256), nullable=False)
     fname = db.Column(db.String(60), nullable=False)
     lname = db.Column(db.String(60), nullable=False)
-    phone = db.Column(db.String(20))
-    p_language = db.Column(db.String(20))
     
     def __repr__(self):
         return '<User %r>' % self.lname
