@@ -10,8 +10,14 @@ flask-assets = "*"
 jsmin = "*"
 libsass = "*"
 gunicorn = "*"
+psycopg2 = "*"
+flask-sqlalchemy = "*"
+flask-migrate = "*"
 
 [dev-packages]
 
 [requires]
 python_version = "3.8"
+
+[scripts]
+upgrade="flask db upgrade"

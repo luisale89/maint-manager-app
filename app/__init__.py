@@ -3,7 +3,7 @@ from flask import Flask
 
 from .blueprints import landing, api
 
-from .extensions import assets
+from .extensions import assets, db, migrate
 
 def create_app(test_config=None):
     app = Flask(__name__)
@@ -11,6 +11,8 @@ def create_app(test_config=None):
         app.config.from_object(os.environ['APP_SETTINGS'])
 
     assets.init_app(app)
+    db.init_app(app)
+    migrate.init_app(app, db)
 
     app.register_blueprint(landing.bp)
     app.register_blueprint(api.bp)
