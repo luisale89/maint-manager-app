@@ -1,7 +1,8 @@
 import os
 from flask import Flask
 
-from .blueprints import landing, api
+from .blueprints.landing import landing
+from .blueprints.api import auth
 
 from .extensions import assets, migrate
 from .models import db
@@ -17,6 +18,6 @@ def create_app(test_config=None):
     migrate.init_app(app, db)
 
     app.register_blueprint(landing.bp)
-    app.register_blueprint(api.bp)
+    app.register_blueprint(auth.auth)
 
     return app

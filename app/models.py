@@ -15,13 +15,12 @@ class User(db.Model):
     def __repr__(self):
         return '<User %r>' % self.lname
 
-    def serialize(self):
+    def serialize_public(self):
         return {
             "id" : self.id,
             "email" : self.email,
             "fname" : self.fname,
-            "lname" : self.lname,
-            "p_lang" : self.p_language
+            "lname" : self.lname
         }
 
     @property
