@@ -3,8 +3,9 @@ from flask import Flask
 
 from .blueprints.landing import landing
 from .blueprints.api import auth
+from .blueprints.api import profile
 
-from .extensions import assets, migrate
+from .extensions import assets, migrate, jwt
 from .models import db
 
 def create_app(test_config=None):
@@ -16,8 +17,10 @@ def create_app(test_config=None):
     assets.init_app(app)
     db.init_app(app)
     migrate.init_app(app, db)
+    jwt.init_app(app)
 
     app.register_blueprint(landing.bp)
     app.register_blueprint(auth.auth)
+    app.register_blueprint(profile.profile)
 
     return app

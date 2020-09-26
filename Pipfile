@@ -13,6 +13,7 @@ gunicorn = "*"
 psycopg2 = "*"
 flask-sqlalchemy = "*"
 flask-migrate = "*"
+flask-jwt-extended = "*"
 
 [dev-packages]
 
@@ -20,7 +21,7 @@ flask-migrate = "*"
 python_version = "3.8"
 
 [scripts]
-start="flask run"
-init="flask db init"
-migrate="flask db migrate"
-upgrade="flask db upgrade"
+start = "flask run"
+init = "flask db init"
+migrate = "flask db migrate"
+upgrade = "flask db upgrade"
