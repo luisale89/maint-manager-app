@@ -7,7 +7,7 @@ from ...models import (
 )
 from ...utils.helpers import APIException
 
-auth = Blueprint('auth', __name__, url_prefix='/api')
+auth = Blueprint('auth', __name__, url_prefix='/api/auth')
 
 @auth.errorhandler(APIException)
 def handle_invalid_usage(error):
@@ -20,13 +20,13 @@ def sign_up():
     * PUBLIC ENDPOINT *
     Crear un nuevo usuario para la aplicación.
     requerido: {
-        "email":"email@any.com",
-        "password":"password",
-        "fname": "first_name",
-        "lname": "last_name"
+        "email": email,
+        "password": psw,
+        "fname": fname,
+        "lname": lname
     }
     respuesta: {
-        "success":"new user created", 201
+        "success":"created", 201
     }
     """
     if not request.is_json:
@@ -38,17 +38,17 @@ def sign_up():
     lname = request.json.get('lname', None)
 
     if email is None:
-        raise APIException("email required")
+        raise APIException("email")
 
     if password is None:
-        raise APIException("password required")
+        raise APIException("password")
 
     if fname is None:
-        raise APIException("fname required")
+        raise APIException("fname")
     fname = fname.replace(" ", "").capitalize()
 
     if lname is None:
-        raise APIException("lname required")
+        raise APIException("lname")
     lname = lname.replace(" ", "").capitalize()
 
     try:
@@ -59,7 +59,7 @@ def sign_up():
         db.session.rollback()
         raise APIException("user already exists")
 
-    return jsonify({'new user created': '201'}), 201
+    return jsonify({'success': 'created'}), 201
 
 
 @auth.route('/login', methods=['POST'])
@@ -80,11 +80,11 @@ def login():
 
     email = request.json.get('email', None)
     if email is None:
-        raise APIException("email required")
+        raise APIException("email")
 
     password = request.json.get('password', None)
     if password is None:
-        raise APIException("password required")
+        raise APIException("password")
 
     user = User.query.filter_by(email=email).first()
     if user is None:
