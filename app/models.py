@@ -10,6 +10,7 @@ db = SQLAlchemy()
 class User(db.Model):
     __tablename__: 'user'
     id = db.Column(db.Integer, primary_key=True)
+    public_id = db.Column(db.String(60), unique=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
     fname = db.Column(db.String(60), nullable=False)
@@ -23,7 +24,7 @@ class User(db.Model):
 
     def serialize_public(self):
         return {
-            "id" : self.id,
+            "public_id" : self.public_id,
             "fname" : self.fname,
             "lname" : self.lname,
             "user_picture": self.profile_picture if self.profile_picture is not None else "no_pic"
@@ -46,7 +47,7 @@ class User(db.Model):
 
     @password.setter
     def password(self, password):
-        self.password_hash = generate_password_hash(password)
+        self.password_hash = generate_password_hash(password, method='sha256')
 
 
 class Owner(db.Model):

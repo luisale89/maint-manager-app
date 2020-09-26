@@ -8,7 +8,7 @@ from flask_jwt_extended import (
 from ...models import (
     db, User
 )
-from ...utils.helpers import APIException
+from ...utils.helpers import APIException, normalize_names
 
 profile = Blueprint('profile', __name__, url_prefix='/api/profile')
 
@@ -27,6 +27,42 @@ def get_profile():
         "user": {user_public, user_contact, user_log}, 200
     }
     """
-    user = User.query.filter_by(email=get_jwt_identity()).first()
+    user = User.query.filter_by(public_id=get_jwt_identity()).first()
+    if user is None:
+        raise APIException("user not found", status_code=404)
+
+    data = {'user': dict(**user.serialize_public(), **user.serialize_contact(), **user.serialize_log())}
+    return jsonify(data), 200
+
+
+@profile.route('/update', methods=['PUT'])
+@jwt_required
+def update_profile():
+    user = User.query.filter_by(public_id=get_jwt_identity()).first()
+    if user is None:
+        raise APIException("user not found", status_code=404)
+
+    if not request.is_json:
+        raise APIException("JSON request only")
+
+    body = request.get_json()
+
+    if body is None:
+        raise APIException("not found body in request")
+
+    if 'fname' in body:
+        user.fname = normalize_names(body['fname'])
+
+    if 'lname' in body:
+        user.lname = normalize_names(body['lname'])
+
+    if 'user_picture' in body:
+        user.profile_picture = body['user_picture']
+
+    if 'user_phone' in body:
+        user.phone = body['user_phone']
+
+    db.session.commit()
+    
     data = {'user': dict(**user.serialize_public(), **user.serialize_contact(), **user.serialize_log())}
     return jsonify(data), 200

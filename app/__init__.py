@@ -2,8 +2,7 @@ import os
 from flask import Flask
 
 from .blueprints.landing import landing
-from .blueprints.api import auth
-from .blueprints.api import profile
+from .blueprints.api import auth, profile
 
 from .extensions import assets, migrate, jwt
 from .models import db

@@ -15,3 +15,7 @@ class APIException(Exception):
         rv = dict(self.payload or ())
         rv['error'] = self.error
         return rv
+
+
+def normalize_names(name):
+    return name.replace(" ", "").capitalize()

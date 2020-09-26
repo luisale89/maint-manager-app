@@ -1,3 +1,5 @@
+import uuid
+
 from flask import Blueprint, url_for, jsonify, request
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import check_password_hash
@@ -9,7 +11,7 @@ from datetime import timedelta
 from ...models import (
     db, User
 )
-from ...utils.helpers import APIException
+from ...utils.helpers import APIException, normalize_names
 
 auth = Blueprint('auth', __name__, url_prefix='/api/auth')
 
@@ -38,6 +40,9 @@ def sign_up():
     
     body = request.get_json()
 
+    if body is None:
+        raise APIException("not body in request")
+
     if 'email' not in body:
         raise APIException("email")
 
@@ -46,14 +51,20 @@ def sign_up():
 
     if 'fname' not in body:
         raise APIException("fname")
-    fname = body['fname'].replace(" ", "").capitalize()
+    fname = normalize_names(body['fname'])
 
     if 'lname' not in body:
         raise APIException("lname")
-    lname = body['lname'].replace(" ", "").capitalize()
+    lname = normalize_names(body['lname'])
 
     try:
-        new_user = User(email=body['email'], password=body['password'], fname=fname, lname=lname)
+        new_user = User(
+            email=body['email'], 
+            password=body['password'], 
+            fname=fname,
+            lname=lname, 
+            public_id=str(uuid.uuid4())
+        )
         db.session.add(new_user)
         db.session.commit()
     except IntegrityError:
@@ -67,13 +78,14 @@ def sign_up():
 def login():
     """
     PUBLIC ENDPOINT
-    envía datos de usuario para hacer login a la app.
     requerido: {
         "email": email,
         "password": password
     }
     respuesta: {
-        "api_token": jwt_hash_token,
+        "access_token": jwt_access_token,
+        "token_expires: timedelta,
+        "refresh_token": jwt_refresh_token,
         "user": {
             "id": id
             "fname": fname,
@@ -100,6 +112,6 @@ def login():
     if not check_password_hash(user.password_hash, body['password']):
         raise APIException("wrong password", status_code=404)
     
-    access_token = create_access_token(identity=body['email'], expires_delta=timedelta(minutes=30))
+    access_token = create_access_token(identity=user.public_id)
 
     return jsonify({"user": user.serialize_public(), "access_token": access_token})
