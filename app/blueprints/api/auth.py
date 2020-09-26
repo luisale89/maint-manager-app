@@ -1,17 +1,26 @@
 import uuid
 
-from flask import Blueprint, url_for, jsonify, request
+from flask import Blueprint, url_for, jsonify, request, current_app
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import check_password_hash
 from flask_jwt_extended import (
-    create_access_token, create_refresh_token
+    create_access_token, create_refresh_token, jwt_required, get_jwt_identity
 )
-from datetime import timedelta
 
 from ...models import (
     db, User
 )
-from ...utils.helpers import APIException, normalize_names
+
+from ...extensions import jwt
+
+from ...utils.exceptions import (
+    APIException, TokenNotFound
+)
+
+from ...utils.helpers import (
+    normalize_names, is_token_revoked, add_token_to_database, get_user_tokens, 
+    revoke_token, unrevoke_token, prune_database
+)
 
 auth = Blueprint('auth', __name__, url_prefix='/api/auth')
 
@@ -19,6 +28,9 @@ auth = Blueprint('auth', __name__, url_prefix='/api/auth')
 def handle_invalid_usage(error):
     return jsonify(error.to_dict()), error.status_code
 
+@jwt.token_in_blacklist_loader
+def check_if_token_revoked(decoded_token):
+    return is_token_revoked(decoded_token)
 
 @auth.route('/sign-up', methods=['POST'])
 def sign_up():
@@ -84,8 +96,6 @@ def login():
     }
     respuesta: {
         "access_token": jwt_access_token,
-        "token_expires: timedelta,
-        "refresh_token": jwt_refresh_token,
         "user": {
             "id": id
             "fname": fname,
@@ -113,5 +123,41 @@ def login():
         raise APIException("wrong password", status_code=404)
     
     access_token = create_access_token(identity=user.public_id)
+    add_token_to_database(access_token, current_app.config['JWT_IDENTITY_CLAIM'])
 
     return jsonify({"user": user.serialize_public(), "access_token": access_token})
+
+
+@auth.route("/token", methods=["GET"])
+@jwt_required
+def get_tokens():
+    user_identity = get_jwt_identity()
+    all_tokens = get_user_tokens(user_identity)
+    ret = [token.serialize() for token in all_tokens]
+    return jsonify(ret), 200
+
+
+@auth.route('/token/<token_id>', methods=['PUT'])
+@jwt_required
+def modify_token(token_id):
+    # Get and verify the desired revoked status from the body
+    json_data = request.get_json(silent=True)
+    if not json_data:
+        return jsonify({"error": "Missing 'revoke' in body"}), 400
+    revoke = json_data.get('revoke', None)
+    if revoke is None:
+        return jsonify({"error": "Missing 'revoke' in body"}), 400
+    if not isinstance(revoke, bool):
+        return jsonify({"error": "'revoke' must be a boolean"}), 400
+
+    # Revoke or unrevoke the token based on what was passed to this function
+    user_identity = get_jwt_identity()
+    try:
+        if revoke:
+            revoke_token(token_id, user_identity)
+            return jsonify({'msg': 'Token revoked'}), 200
+        else:
+            unrevoke_token(token_id, user_identity)
+            return jsonify({'msg': 'Token unrevoked'}), 200
+    except TokenNotFound:
+        return jsonify({'msg': 'The specified token was not found'}), 404

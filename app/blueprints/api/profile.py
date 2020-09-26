@@ -8,7 +8,8 @@ from flask_jwt_extended import (
 from ...models import (
     db, User
 )
-from ...utils.helpers import APIException, normalize_names
+from ...utils.exceptions import APIException
+from ...utils.helpers import normalize_names
 
 profile = Blueprint('profile', __name__, url_prefix='/api/profile')
 
