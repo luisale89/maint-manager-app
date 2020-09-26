@@ -1,11 +1,10 @@
 import json
 
-from flask_sqlalchemy import SQLAlchemy
+from .extensions import db
 
 from werkzeug.security import generate_password_hash
 # from sqlalchemy.dialects.postgresql import JSON #only for postgresql
 
-db = SQLAlchemy()
 
 class User(db.Model):
     __tablename__: 'user'
@@ -86,6 +85,12 @@ class Suscriptor(db.Model):
 
     def __repr__(self):
         return '<Suscriptor %r>' % self.suscriptor_email
+
+
+class Company(db.Model):
+    __tablename__: 'company'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), unique=True, nullable=False)
 
 
 class TokenBlacklist(db.Model):
