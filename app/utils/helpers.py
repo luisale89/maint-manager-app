@@ -87,6 +87,15 @@ def unrevoke_token(token_id, user):
         raise TokenNotFound("Could not find the token {}".format(token_id))
 
 
+def revoke_all_tokens(user_identity):
+    '''
+    revokes all active tokens for a given user.
+    '''
+    all_tokens = TokenBlacklist.query.filter_by(user_identity=user_identity).all()
+    all_tokens = list(map(lambda x: dict({**x, 'revoked': True}), all_tokens))
+    db.session.commit()
+
+
 def prune_database():
     """
     Delete tokens that have expired from the database.

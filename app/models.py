@@ -1,4 +1,3 @@
-import json
 
 from .extensions import db
 
@@ -11,7 +10,7 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     public_id = db.Column(db.String(60), unique=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(256), nullable=False)
+    password_hash = db.Column(db.String(256))
     fname = db.Column(db.String(60), nullable=False)
     lname = db.Column(db.String(60), nullable=False)
     profile_picture = db.Column(db.String(120))

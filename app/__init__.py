@@ -12,11 +12,13 @@ def create_app(test_config=None):
     if test_config == None:
         app.config.from_object(os.environ['APP_SETTINGS'])
 
+    #extensions
     assets.init_app(app)
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
 
+    #blueprints
     app.register_blueprint(landing.bp)
     app.register_blueprint(auth.auth)
     app.register_blueprint(profile.profile)
