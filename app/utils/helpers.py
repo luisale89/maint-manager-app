@@ -38,64 +38,6 @@ def add_token_to_database(encoded_token, identity_claim):
     db.session.commit()
 
 
-def is_token_revoked(decoded_token):
-    """
-    Checks if the given token is revoked or not. Because we are adding all the
-    tokens that we create into this database, if the token is not present
-    in the database we are going to consider it revoked, as we don't know where
-    it was created.
-    """
-    jti = decoded_token['jti']
-    try:
-        token = TokenBlacklist.query.filter_by(jti=jti).one()
-        return token.revoked
-    except NoResultFound:
-        return True
-
-
-def get_user_tokens(user_identity):
-    """
-    Returns all of the tokens, revoked and unrevoked, that are stored for the
-    given user
-    """
-    return TokenBlacklist.query.filter_by(user_identity=user_identity).all()
-
-
-def revoke_token(token_id, user):
-    """
-    Revokes the given token. Raises a TokenNotFound error if the token does
-    not exist in the database
-    """
-    try:
-        token = TokenBlacklist.query.filter_by(id=token_id, user_identity=user).one()
-        token.revoked = True
-        db.session.commit()
-    except NoResultFound:
-        raise TokenNotFound("Could not find the token {}".format(token_id))
-
-
-def unrevoke_token(token_id, user):
-    """
-    Unrevokes the given token. Raises a TokenNotFound error if the token does
-    not exist in the database
-    """
-    try:
-        token = TokenBlacklist.query.filter_by(id=token_id, user_identity=user).one()
-        token.revoked = False
-        db.session.commit()
-    except NoResultFound:
-        raise TokenNotFound("Could not find the token {}".format(token_id))
-
-
-def revoke_all_tokens(user_identity):
-    '''
-    revokes all active tokens for a given user.
-    '''
-    all_tokens = TokenBlacklist.query.filter_by(user_identity=user_identity).all()
-    all_tokens = list(map(lambda x: dict({**x, 'revoked': True}), all_tokens))
-    db.session.commit()
-
-
 def prune_database():
     """
     Delete tokens that have expired from the database.
@@ -108,6 +50,7 @@ def prune_database():
     for token in expired:
         db.session.delete(token)
     db.session.commit()
+
 
 def normalize_names(name):
     return name.replace(" ", "").capitalize()

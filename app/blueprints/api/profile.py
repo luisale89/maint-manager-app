@@ -54,10 +54,18 @@ def update_profile():
         raise APIException("not found body in request")
 
     if 'fname' in body:
-        user.fname = normalize_names(body['fname'])
+        fname = normalize_names(body['fname'])
+        if fname == '':
+            raise APIException("fname invalid")
+
+        user.fname = fname
 
     if 'lname' in body:
-        user.lname = normalize_names(body['lname'])
+        lname = normalize_names(body['lname'])
+        if lname == '':
+            raise APIException("lname invalid")
+
+        user.lname = lname
 
     if 'user_picture' in body:
         user.profile_picture = body['user_picture']
