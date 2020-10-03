@@ -1,6 +1,5 @@
 from datetime import datetime
 
-from sqlalchemy.orm.exc import NoResultFound
 from flask_jwt_extended import decode_token
 
 from ..extensions import db

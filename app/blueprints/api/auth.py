@@ -2,12 +2,12 @@ import uuid, re
 
 from flask import Blueprint, url_for, jsonify, request, current_app
 from sqlalchemy.exc import (
-    IntegrityError, NoResultFound
+    IntegrityError
 )
 from werkzeug.security import check_password_hash
 from flask_jwt_extended import (
     create_access_token, create_refresh_token, jwt_required, 
-    get_jwt_identity
+    get_jwt_identity, decode_token
 )
 from ...models import (
     User, TokenBlacklist
@@ -15,8 +15,8 @@ from ...models import (
 from ...extensions import jwt, db
 from ...utils.exceptions import APIException
 from ...utils.helpers import (
-    normalize_names, add_token_to_database, get_user_tokens, 
-    revoke_token, unrevoke_token, prune_database, revoke_all_tokens
+    normalize_names, add_token_to_database, 
+    prune_database
 )
 
 auth = Blueprint('auth', __name__, url_prefix='/api/auth')
@@ -28,11 +28,12 @@ def handle_invalid_usage(error):
 @jwt.token_in_blacklist_loader
 def check_if_token_revoked(decoded_token):
     jti = decoded_token['jti']
-    try:
-        token = TokenBlacklist.query.filter_by(jti=jti).one()
-        return token.revoked
-    except NoResultFound:
+    token = TokenBlacklist.query.filter_by(jti=jti).first()
+    if token is None:
         return True
+    else:
+        return token.revoked
+
 
 @auth.route('/sign-up', methods=['POST']) #normal signup
 def sign_up():
@@ -147,22 +148,44 @@ def login():
     return jsonify({"user": user.serialize_public(), "access_token": access_token})
 
 
-@auth.route('/logout', methods=['GET']) #logout everywhere
+@auth.route('/logout', methods=['GET', 'PUT']) #logout everywhere
 @jwt_required
 def logout_user():
     if not request.is_json:
-        raise APIException("JSON request only")
+        raise APIException("not JSON request")
 
     user_identity = get_jwt_identity()
 
-    tokens = TokenBlacklist.query.filter_by(user_identity=user_identity, revoked=False).all()
-    for token in tokens:
-        token.revoked = True
-    db.session.commit()
-    return jsonify({"success": "user logged-out"}), 200
+    if request.method == 'GET':
+        tokens = TokenBlacklist.query.filter_by(user_identity=user_identity, revoked=False).all()
+        for token in tokens:
+            token.revoked = True
+        db.session.commit()
+        return jsonify({"success": "user logged-out"}), 200
+
+    elif request.method == 'PUT':
+        token_info = decode_token(request.headers.get('Authorization').replace("Bearer ", ""))
+        db_token = TokenBlacklist.query.filter_by(jti=token_info['jti']).first()
+        db_token.revoked = True
+        db.session.commit()
+        return jsonify({"success": "user logged out"}), 200
 
 
 @auth.route('/prune-db', methods=['GET']) #This must be a admin only endpoint.
 def prune_db():
     prune_database()
     return jsonify({"success": "db pruned correctly"}), 200
+
+
+@auth.route('/tokens', methods=['GET'])
+@jwt_required
+def get_all_tokens():
+
+    if not request.is_json:
+        raise APIException("not JSON request")
+
+    user_identity = get_jwt_identity()
+    tokens = TokenBlacklist.query.filter_by(user_identity=user_identity).all()
+    response = list(map(lambda x: x.serialize(), tokens))
+
+    return jsonify({"user_tokens": response}), 200
