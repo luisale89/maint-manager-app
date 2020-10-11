@@ -115,7 +115,8 @@ def login():
             "id": id
             "fname": fname,
             "lname": lname,
-            "user_picture": url_of_pic
+            "user_picture": url_of_pic,
+            "notifications": []
         }
     }
     """
@@ -145,7 +146,9 @@ def login():
     access_token = create_access_token(identity=user.public_id)
     add_token_to_database(access_token, current_app.config['JWT_IDENTITY_CLAIM'])
 
-    return jsonify({"user": user.serialize(), "access_token": access_token})
+    return jsonify({
+        "user": user.serialize(), "access_token": access_token, "notifications": user.serialize_notifications()
+    })
 
 
 @auth.route('/logout', methods=['GET', 'PUT']) #logout everywhere

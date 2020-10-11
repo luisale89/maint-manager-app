@@ -9,11 +9,11 @@ from werkzeug.security import generate_password_hash
 class Country(db.Model):
     __tablename__: 'country'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(120), nullable=False)
-    code = db.Column(db.Integer, nullable=False)
+    name = db.Column(db.String(120), nullable=False, unique=True)
+    code = db.Column(db.Integer, nullable=False, unique=True)
     currency = db.Column(db.String(10), nullable=False)
-    usd_rate = db.Column(db.Float)
-    utc_dif = db.Column(db.Integer)
+    usd_rate = db.Column(db.Float, nullable=False)
+    utc_dif = db.Column(db.Integer, nullable=False)
 
     users = db.relationship('User', back_populates='country', lazy=True)
 
@@ -22,16 +22,12 @@ class Country(db.Model):
 
     def serialize(self):
         return {
+            'id': self.id,
             'name': self.name,
             'code': self.code,
             'currency': self.currency,
             'usd_rate': self.usd_rate,
             'utc_dif': self.utc_dif
-        }
-
-    def serialize_users(self):
-        return {
-            'users': list(map(lambda x: x.serialize_public(), self.users)) if len(self.users) != 0 else []
         }
 
 
@@ -74,9 +70,8 @@ class User(db.Model):
         }
 
     def serialize_notifications(self):
-        return {
-            "notifications": list(map(lambda x: x.serialize(), self.notifications)) if len(self.notifications) != 0 else []
-        }
+        return list(map(lambda x: x.serialize(), self.notifications)) if len(self.notifications) != 0 else 'no_notifications'
+
 
     @property
     def password(self):

@@ -2,7 +2,7 @@ import os
 from flask import Flask
 
 from .blueprints.landing import landing
-from .blueprints.api import auth, profile
+from .blueprints.api import auth, profile, preset
 
 from .extensions import assets, migrate, jwt, db
 
@@ -22,5 +22,6 @@ def create_app(test_config=None):
     app.register_blueprint(landing.bp)
     app.register_blueprint(auth.auth)
     app.register_blueprint(profile.profile)
+    app.register_blueprint(preset.preset)
 
     return app
