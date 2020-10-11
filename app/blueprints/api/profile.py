@@ -8,7 +8,7 @@ from flask_jwt_extended import (
 
 from ...extensions import db
 from ...models import (
-    User
+    User, Country
 )
 from ...utils.exceptions import APIException
 from ...utils.helpers import normalize_names
@@ -34,7 +34,7 @@ def get_profile():
     if user is None:
         raise APIException("user not found", status_code=404)
 
-    data = {'user': dict(**user.serialize_public(), **user.serialize_contact(), **user.serialize_log())}
+    data = {'user': dict(**user.serialize(), **user.serialize_contact())}
     return jsonify(data), 200
 
 
@@ -75,5 +75,5 @@ def update_profile():
 
     db.session.commit()
     
-    data = {'user': dict(**user.serialize_public(), **user.serialize_contact(), **user.serialize_log())}
+    data = {'user': dict(**user.serialize(), **user.serialize_contact())}
     return jsonify(data), 200

@@ -145,7 +145,7 @@ def login():
     access_token = create_access_token(identity=user.public_id)
     add_token_to_database(access_token, current_app.config['JWT_IDENTITY_CLAIM'])
 
-    return jsonify({"user": user.serialize_public(), "access_token": access_token})
+    return jsonify({"user": user.serialize(), "access_token": access_token})
 
 
 @auth.route('/logout', methods=['GET', 'PUT']) #logout everywhere
@@ -177,7 +177,7 @@ def prune_db():
     return jsonify({"success": "db pruned correctly"}), 200
 
 
-@auth.route('/tokens', methods=['GET'])
+@auth.route('/tokens', methods=['GET']) #Development endpoint only--- delete for production
 @jwt_required
 def get_all_tokens():
 
@@ -189,3 +189,6 @@ def get_all_tokens():
     response = list(map(lambda x: x.serialize(), tokens))
 
     return jsonify({"user_tokens": response}), 200
+
+
+# Falta agregar endpoint para re establecer la contraseña del usuario.

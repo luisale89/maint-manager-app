@@ -1,8 +1,38 @@
 
 from .extensions import db
+from datetime import datetime
 
 from werkzeug.security import generate_password_hash
 # from sqlalchemy.dialects.postgresql import JSON #only for postgresql
+
+
+class Country(db.Model):
+    __tablename__: 'country'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), nullable=False)
+    code = db.Column(db.Integer, nullable=False)
+    currency = db.Column(db.String(10), nullable=False)
+    usd_rate = db.Column(db.Float)
+    utc_dif = db.Column(db.Integer)
+
+    users = db.relationship('User', back_populates='country', lazy=True)
+
+    def __repr__(self):
+        return '<Country %r>' % self.name
+
+    def serialize(self):
+        return {
+            'name': self.name,
+            'code': self.code,
+            'currency': self.currency,
+            'usd_rate': self.usd_rate,
+            'utc_dif': self.utc_dif
+        }
+
+    def serialize_users(self):
+        return {
+            'users': list(map(lambda x: x.serialize_public(), self.users)) if len(self.users) != 0 else []
+        }
 
 
 class User(db.Model):
@@ -13,30 +43,39 @@ class User(db.Model):
     password_hash = db.Column(db.String(256))
     fname = db.Column(db.String(60), nullable=False)
     lname = db.Column(db.String(60), nullable=False)
-    profile_picture = db.Column(db.String(120))
-    phone = db.Column(db.String(16))
-    activity_log = db.Column(db.Text)
-    
-    def __repr__(self):
-        return '<User %r>' % self.lname
+    profile_img = db.Column(db.String(120))
+    user_since = db.Column(db.DateTime, default=datetime.utcnow)
+    country_id = db.Column(db.Integer, db.ForeignKey('country.id'))
+    phone = db.Column(db.String(18))
 
-    def serialize_public(self):
+    country = db.relationship('Country', back_populates='users', lazy=True, uselist=False)
+    admin = db.relationship('Admin', back_populates='user', lazy=True, uselist=False)
+    operator = db.relationship('Operator', back_populates='user', lazy=True, uselist=False)
+    suscriptor = db.relationship('Suscriptor', back_populates='user', lazy=True, uselist=False)
+    notifications = db.relationship('Notification', backref='user', lazy=True)
+
+    def __repr__(self):
+        return '<User %r>' % self.public_id
+
+    def serialize(self):
         return {
             "public_id" : self.public_id,
             "fname" : self.fname,
             "lname" : self.lname,
-            "user_picture": self.profile_picture if self.profile_picture is not None else "no_pic"
+            "user_img": self.profile_img if self.profile_img is not None else "no_pic",
+            "user_since": self.user_since,
+            "country": self.country.serialize() if self.country is not None else "no_country"
         }
-    
+
     def serialize_contact(self):
         return {
             "email": self.email,
-            "user_phone": self.phone if self.phone is not None else "no_phone"
+            "phone": self.phone if self.phone is not None else "no_phone"
         }
 
-    def serialize_log(self):
+    def serialize_notifications(self):
         return {
-            "activity_log": self.activity_log if self.activity_log is not None else list([{"l.00": "no_data"}])
+            "notifications": list(map(lambda x: x.serialize(), self.notifications)) if len(self.notifications) != 0 else []
         }
 
     @property
@@ -48,48 +87,65 @@ class User(db.Model):
         self.password_hash = generate_password_hash(password, method='sha256')
 
 
-class Owner(db.Model):
-    __tablename__: 'owner'
-    id = db.Column(db.Integer, primary_key=True)
-
-    def __repr__(self):
-        return '<Owner %r>' % self.id
-
-
 class Admin(db.Model):
     __tablename__: 'admin'
-    id = db.Column(db.Integer, primary_key=True)
-    admin_email = db.Column(db.String(120), nullable=False) #email ingresado por el owner, que indica el usuario que está buscando como administrador de su empres
-    status = db.Column(db.String(10)) #open, denied, active, paused, deleted, undefined
+    id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
+
+    user = db.relationship('User', back_populates='admin', uselist=False, lazy=True)
 
     def __repr__(self):
-        return '<Admin %r>' % self.admin_email
+        return '<Admin %r>' % self.id
+
+    def serialize_user(self):
+        return self.user.serialize()
 
 
 class Operator(db.Model):
     __tablename__: 'operator'
-    id = db.Column(db.Integer, primary_key=True)
-    operator_email = db.Column(db.String(120), nullable=False) #email ingresado por el admin, que indica el usuario que está buscando como operador de su equipo.
-    status = db.Column(db.String(10)) #open, denied, active, paused, deleted, undefined
+    id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
+
+    user = db.relationship('User', back_populates='operator', uselist=False, lazy=True)
 
     def __repr__(self):
-        return '<Operator %r>' % self.operator_email
+        return '<Operator %r>' % self.id
+
+    def serialize_user(self):
+        return self.user.serialize()
 
 
 class Suscriptor(db.Model):
     __tablename__: 'suscriptor'
-    id = db.Column(db.Integer, primary_key=True)
-    suscriptor_email = db.Column(db.String(120), nullable=False) #email ingresado por el admin, que indica el usuario que puede suscribirse a un evento.
-    status = db.Column(db.String(10)) #open, denied, active, paused, deleted, undefined
+    id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
+
+    user = db.relationship('User', back_populates='suscriptor', uselist=False, lazy=True)
 
     def __repr__(self):
-        return '<Suscriptor %r>' % self.suscriptor_email
+        return '<Suscriptor %r>' % self.id
+
+    def serialize_user(self):
+        return self.user.serialize()
 
 
-class Company(db.Model):
-    __tablename__: 'company'
+class Notification(db.Model):
+    __tablename__: 'notification'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(120), unique=True, nullable=False)
+    user_email = db.Column(db.String(120)) #cuando se crea una noti, se debe agregar el email del usuario target en caso de que no se encuentre en la bd como un usuario registrado.
+    title = db.Column(db.String(120), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    date = db.Column(db.DateTime, default=datetime.utcnow)
+    readed = db.Column(db.Boolean, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+
+    def __repr__(self):
+        return '<Notification %r>' % self.id
+
+    def serialize(self):
+        return dict({
+            'title': self.title,
+            'content': self.content,
+            'date': self.date,
+            'readed': self.readed
+        })
 
 
 class TokenBlacklist(db.Model):
