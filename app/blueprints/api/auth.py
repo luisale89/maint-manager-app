@@ -70,15 +70,15 @@ def sign_up():
 
     if 'fname' not in body:
         raise APIException("'fname' not found in request")
-    fname = normalize_names(body['fname'])
-    if not only_letters(fname):
+    if not only_letters(body['fname'], spaces=True):
         raise APIException("invalid 'fname' parameter in request: %r" % body['fname'])
+    fname = normalize_names(body['fname'], spaces=True)
 
     if 'lname' not in body:
         raise APIException("'lname' not found in request")
-    lname = normalize_names(body['lname'])
-    if not only_letters(lname):
+    if not only_letters(body['lname'], spaces=True):
         raise APIException("invalid 'lname' parameter in request %r" % body['lname'])
+    lname = normalize_names(body['lname'], spaces=True)
 
     try:
         new_user = User(

@@ -1,5 +1,5 @@
 
-from flask import Blueprint, url_for, jsonify, request
+from flask import Blueprint, jsonify, request
 from sqlalchemy.exc import IntegrityError
 from flask_jwt_extended import (
     jwt_required, get_jwt_identity
@@ -49,50 +49,44 @@ def create_country():
 
     if 'name' not in body:
         raise APIException("not found 'name' parameter in request body")
-    if not only_letters(body['name'], spaces=True):
-        raise APIException("invalid 'name' parameter in request: %r" % body['name'])
-    name = normalize_names(body['name'], spaces=True)
+    if not only_letters(body.name, spaces=True):
+        raise APIException("invalid 'name' parameter in request: %r" % body.name)
 
     if 'code' not in body:
         raise APIException("not found 'code' parameter in request body")
-    elif not isinstance(body['code'], int):
-        raise APIException("invalid 'code' format in request: %r" % body['code'])
+    elif not isinstance(body.code, int):
+        raise APIException("invalid 'code' format in request: %r" % body.code)
 
     if 'currency' not in body:
         raise APIException("not found 'currency' parameter in request body")
-    if not only_letters(body['currency']):
-        raise APIException("invalid 'currency' format in request %r" % body['currency'])
-    currency = body['currency']
+    if not only_letters(body.currency):
+        raise APIException("invalid 'currency' format in request %r" % body.currency)
 
     if 'usd_rate' not in body:
         raise APIException("not found 'usd_rate' parameter in request body")
-    elif not isinstance(body['usd_rate'], float):
-        raise APIException("invalid 'usd_rate' format in request: %r" % body['usd_rate'])
+    elif not isinstance(body.usd_rate, float):
+        raise APIException("invalid 'usd_rate' format in request: %r expected" % body.usd_rate)
 
     if 'utc_dif' not in body:
         raise APIException("not found 'utc_dif' parameter in request body")
-    elif not isinstance(body['utc_dif'], int):
-        raise APIException("invalid 'utc_dif' format in request: %r" % body['utc_dif'])
+    elif not isinstance(body.utc_dif, int):
+        raise APIException("invalid 'utc_dif' format in request: %r" % body.utc_dif)
 
     try:
         new_country = Country(
-            name=name,
-            code=body['code'],
-            currency=currency,
-            usd_rate=body['usd_rate'],
-            utc_dif=body['utc_dif']
+            name=normalize_names(body.name, spaces=True),
+            code=body.code,
+            currency=body.currency,
+            usd_rate=body.usd_rate,
+            utc_dif=body.utc_dif
         )
         db.session.add(new_country)
         db.session.commit()
     except IntegrityError:
         db.session.rollback()
-        raise APIException("country %r or code %r already exist" % (name, body['code']))
+        raise APIException("country %r or code %r already exist" % (body.name, body.code))
 
-    response = {
-        "success": "country created"
-    }
-
-    return jsonify(response), 200
+    return jsonify({"success": "country created"}), 201
 
 @preset.route('/country/<int:country_id>', methods=['PUT', 'DELETE'])
 # @jwt_required
@@ -102,9 +96,9 @@ def edit_country(country_id=None):
     '''
     if not request.is_json:
         raise APIException("JSON request only")
-
     if country_id is None:
         raise APIException("country id expected as integer")
+
     country_q = Country.query.get(country_id)
     if country_q is None:
         raise APIException("Country '%s' not found" % country_id)
@@ -115,30 +109,37 @@ def edit_country(country_id=None):
 
     if request.method == 'PUT':
         if 'name' in body:
-            if not only_letters(body['name'], spaces=True):
-                raise APIException("invalid 'name' parameter in request: %r" % body['name'])
-            else:
-                country_q.name = normalize_names(body['name'], spaces=True)
+            if not only_letters(body.name, spaces=True):
+                raise APIException("invalid 'name' parameter in request: %r" % body.name)
+            country_q.name = normalize_names(body.name, spaces=True)
 
-        if 'code' in body and isinstance(body['code'], int):
-            country_q.code = body['code']
+        if 'code' in body:
+            if not isinstance(body.code, int):
+                raise APIException("invalid 'code' parameter in request: %r" % body.code)
+            country_q.code = body.code
         
         if 'currency' in body:
-            country_q.currency = body['currency']
+            if not only_letters(body.currency):
+                raise APIException("invalid 'currency' format in request: %r" % body.currency)
+            country_q.currency = body.currency
 
         if 'usd_rate' in body:
-            country_q.usd_rate = body['usd_rate']
+            if not isinstance(body.usd_rate, float):
+                raise APIException("invalid 'usd_rate' format in request: %r" % body.usd_rate)
+            country_q.usd_rate = body.usd_rate
 
         if 'utc_dif' in body:
-            country_q.utc_dif = body['utc_dif']
+            if not isinstance(body.utc_dif, int):
+                raise APIException("invalid 'utc_dif' format in request: %r" % body.utc_dif)
+            country_q.utc_dif = body.utc_dif
 
         db.session.commit()
-        return jsonify({"success": "country updated"}), 200
+        return jsonify({"success": "country %r updated", % country_id}), 200
 
     elif request.method == 'DELETE':
-        if 'delete' in body and body['delete'] is True:
+        if 'delete' in body and body.delete is True:
             db.session.delete(country_q)
             db.session.commit()
-            return jsonify({"success": "country deleted"}), 200
+            return jsonify({"success": "country %r deleted" % country_id}), 200
         else:
-            raise APIException({"error": "bad 'delete' parameter"})
+            raise APIException({"error": "bad 'delete' parameter in request"})

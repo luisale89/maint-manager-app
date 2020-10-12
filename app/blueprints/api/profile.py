@@ -55,18 +55,16 @@ def update_profile():
         raise APIException("not found body in request")
 
     if 'fname' in body:
-        fname = normalize_names(body['fname'])
-        if not only_letters(fname):
-            raise APIException("Invalid 'fname' format in request: %r" %fname)
+        if not only_letters(body['fname'], spaces=True):
+            raise APIException("Invalid 'fname' format in request: %r" %body['fname'])
 
-        user.fname = fname
+        user.fname = normalize_names(body['fname'], spaces=True)
 
     if 'lname' in body:
-        lname = normalize_names(body['lname'])
-        if not only_letters(lname):
-            raise APIException("Invalid 'lname' format in request: %r" %lname)
+        if not only_letters(body['lname'], spaces=True):
+            raise APIException("Invalid 'lname' format in request: %r" %body['lname'])
 
-        user.lname = lname
+        user.lname = normalize_names(body['lname'], spaces=True)
 
     if 'user_picture' in body:
         user.profile_picture = body['user_picture']
