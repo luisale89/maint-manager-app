@@ -72,6 +72,15 @@ def update_profile():
     if 'user_phone' in body:
         user.phone = body['user_phone']
 
+    if 'country' in body:
+        if not isinstance(body['country'], int):
+            raise APIException("Expected coutry id in request: %r" %body['country'])
+
+        country_q = Country.query.get(body['country'])
+        if country_q is None:
+            raise APIException("Country id %r not found" % body['country'], status_code=404)
+        user.country = country_q
+
     db.session.commit()
     
     data = {'user': dict(**user.serialize(), **user.serialize_contact())}

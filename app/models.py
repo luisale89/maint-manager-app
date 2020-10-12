@@ -14,8 +14,9 @@ class Country(db.Model):
     currency = db.Column(db.String(10), nullable=False)
     usd_rate = db.Column(db.Float, nullable=False)
     utc_dif = db.Column(db.Integer, nullable=False)
-
+    #relations
     users = db.relationship('User', back_populates='country', lazy=True)
+    companies = db.relationship('Company', back_populates="country", lazy=True)
 
     def __repr__(self):
         return '<Country %r>' % self.name
@@ -43,12 +44,13 @@ class User(db.Model):
     user_since = db.Column(db.DateTime, default=datetime.utcnow)
     country_id = db.Column(db.Integer, db.ForeignKey('country.id'))
     phone = db.Column(db.String(18))
-
+    #relations
     country = db.relationship('Country', back_populates='users', lazy=True, uselist=False)
     admin = db.relationship('Admin', back_populates='user', lazy=True, uselist=False)
     operator = db.relationship('Operator', back_populates='user', lazy=True, uselist=False)
     suscriptor = db.relationship('Suscriptor', back_populates='user', lazy=True, uselist=False)
     notifications = db.relationship('Notification', backref='user', lazy=True)
+    companies = db.relationship('Company', back_populates='user', lazy=True)
 
     def __repr__(self):
         return '<User %r>' % self.public_id
@@ -72,6 +74,13 @@ class User(db.Model):
     def serialize_notifications(self):
         return list(map(lambda x: x.serialize(), self.notifications)) if len(self.notifications) != 0 else 'no_notifications'
 
+    def serialize_relations(self):
+        return {
+            "companies": list(map(lambda x: x.serialize(), self.companies)) if len(self.companies) != 0 else 'no_companies',
+            "admin": self.admin.serialize() if self.admin is not None else "no_admin",
+            "operator": self.operator.serialize() if self.operator is not None else "no_operator",
+            "suscriptor": self.suscriptor.serialize() if self.suscriptor is not None else "no_suscriptions"
+        }
 
     @property
     def password(self):
@@ -85,11 +94,18 @@ class User(db.Model):
 class Admin(db.Model):
     __tablename__: 'admin'
     id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
-
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'))
+    #relations
     user = db.relationship('User', back_populates='admin', uselist=False, lazy=True)
+    company = db.relationship('Company', back_populates='admins', uselist=False, lazy=True)
 
     def __repr__(self):
         return '<Admin %r>' % self.id
+
+    def serialize(self):
+        return {
+            "id": self.id
+        }
 
     def serialize_user(self):
         return self.user.serialize()
@@ -104,6 +120,11 @@ class Operator(db.Model):
     def __repr__(self):
         return '<Operator %r>' % self.id
 
+    def serialize(self):
+        return {
+            "id": self.id
+        }
+
     def serialize_user(self):
         return self.user.serialize()
 
@@ -116,6 +137,11 @@ class Suscriptor(db.Model):
 
     def __repr__(self):
         return '<Suscriptor %r>' % self.id
+
+    def serialize(self):
+        return {
+            "id": self.id
+        }
 
     def serialize_user(self):
         return self.user.serialize()
@@ -141,6 +167,34 @@ class Notification(db.Model):
             'date': self.date,
             'readed': self.readed
         })
+
+
+class Company(db.Model):
+    __tablename__: 'company'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), unique=True, nullable=False)
+    rif = db.Column(db.String(60), unique=True)
+    logo = db.Column(db.Text)
+    city = db.Column(db.String(120))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id')) #owner of the company
+    country_id = db.Column(db.Integer, db.ForeignKey('country.id')) #country of the company
+    #relations
+    user = db.relationship('User', back_populates='companies', uselist=False, lazy=True)
+    country = db.relationship('Country', back_populates='companies', uselist=False, lazy=True)
+    admins = db.relationship('Admin', back_populates="company", lazy=True)
+
+    def __repr__(self):
+        return '<Company %r>' % self.name
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "rif": self.rif,
+            "logo": self.logo,
+            "city": self.city,
+            "country": self.country.serialize() if self.country is not None else "no_country"
+        }
 
 
 class TokenBlacklist(db.Model):

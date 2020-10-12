@@ -143,7 +143,10 @@ def login():
     add_token_to_database(access_token, current_app.config['JWT_IDENTITY_CLAIM'])
 
     return jsonify({
-        "user": user.serialize(), "access_token": access_token, "notifications": user.serialize_notifications()
+        "user": user.serialize(), 
+        "access_token": access_token, 
+        "notifications": user.serialize_notifications(), 
+        "activity": user.serialize_relations()
     })
 
 
