@@ -1,4 +1,5 @@
 from datetime import datetime
+import re
 
 from flask_jwt_extended import decode_token
 
@@ -51,5 +52,40 @@ def prune_database():
     db.session.commit()
 
 
-def normalize_names(name):
-    return name.replace(" ", "").capitalize()
+def normalize_names(name, spaces=False):
+    '''Capitalize and delete white spaces in a string'''
+    if not spaces:
+        return name.replace(" ", "").capitalize()
+    else:
+        return name.strip().title()
+
+def valid_email(email):
+    '''
+    check for a valid email format, return True or False.
+    '''
+    #Regular expression that checks a valid email
+    ereg = '^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$'
+    return bool(re.search(ereg, email))
+
+def valid_password(password):
+    '''
+    check for a valid password format, return True or False.
+    '''
+    #Regular expression that checks a secure password
+    preg = preg = '^.*(?=.{8,})(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).*$'
+    return bool(re.search(preg, password))
+
+def only_letters(string, spaces=False):
+    '''
+    Check for special characters in a string. return True or False
+    '''
+    #regular expression that checks only letters string
+    sreg = '^[a-zA-ZñáéíóúÑÁÉÍÓÚ]*$'
+    #regular expression that check letters and spaces in a string
+    sregs = '^[a-zA-Z ñáéíóúÑÁÉÍÓÚ]*$'
+    if string == '' or not isinstance(string, str):
+        return False
+    if not spaces:
+        return bool(re.search(sreg, string))
+    else:
+        return bool(re.search(sregs, string))

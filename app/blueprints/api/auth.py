@@ -16,7 +16,7 @@ from ...extensions import jwt, db
 from ...utils.exceptions import APIException
 from ...utils.helpers import (
     normalize_names, add_token_to_database, 
-    prune_database
+    prune_database, valid_email, valid_password, only_letters 
 )
 
 auth = Blueprint('auth', __name__, url_prefix='/api/auth')
@@ -50,10 +50,6 @@ def sign_up():
         "success":"created", 201
     }
     """
-    #Regular expression that checks a valid email
-    ereg = '^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$'
-    #Regular expression that checks a secure password
-    preg = '^.*(?=.{8,})(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).*$'
 
     if not request.is_json:
         raise APIException("json request only")
@@ -64,25 +60,25 @@ def sign_up():
 
     if 'email' not in body:
         raise APIException("'email' not found in request")
-    elif not re.search(ereg, body['email']):
-        raise APIException("invalid email format")
+    elif not valid_email(body['email']):
+        raise APIException("invalid 'email' format in request: %r" % body['email'])
 
     if 'password' not in body:
         raise APIException("'password' not found in request")
-    elif not re.search(preg, body['password']):
-        raise APIException("insecure password")
+    elif not valid_password(body['password']):
+        raise APIException("insecure 'password' in request: %r" % body['password'])
 
     if 'fname' not in body:
         raise APIException("'fname' not found in request")
     fname = normalize_names(body['fname'])
-    if fname == '':
-        raise APIException("fname invalid")
+    if not only_letters(fname):
+        raise APIException("invalid 'fname' parameter in request: %r" % body['fname'])
 
     if 'lname' not in body:
         raise APIException("'lname' not found in request")
     lname = normalize_names(body['lname'])
-    if lname == '':
-        raise APIException("lname invalid")
+    if not only_letters(lname):
+        raise APIException("invalid 'lname' parameter in request %r" % body['lname'])
 
     try:
         new_user = User(
@@ -96,9 +92,9 @@ def sign_up():
         db.session.commit()
     except IntegrityError:
         db.session.rollback()
-        raise APIException("user already created") # la columna email es unica,por eso este error significa solamente que el email ya existe
+        raise APIException("user %r already exists" % body['email']) # la columna email es unica,por eso este error significa solamente que el email ya existe
 
-    return jsonify({'success': 'created'}), 201
+    return jsonify({'success': 'new user created'}), 201
 
 
 @auth.route('/login', methods=['POST']) #normal login
@@ -135,7 +131,7 @@ def login():
 
     user = User.query.filter_by(email=body['email']).first()
     if user is None:
-        raise APIException("user not found", status_code=404)
+        raise APIException("user %r not found" %body['email'], status_code=404)
 
     if user.password_hash is None:
         raise APIException("user registered with social-api", status_code=401)

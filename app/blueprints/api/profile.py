@@ -11,7 +11,9 @@ from ...models import (
     User, Country
 )
 from ...utils.exceptions import APIException
-from ...utils.helpers import normalize_names
+from ...utils.helpers import (
+    normalize_names, only_letters
+)
 
 profile = Blueprint('profile', __name__, url_prefix='/api/profile')
 
@@ -48,22 +50,21 @@ def update_profile():
     if not request.is_json:
         raise APIException("JSON request only")
 
-    body = request.get_json()
-
+    body = request.get_json(silent=True)
     if body is None:
         raise APIException("not found body in request")
 
     if 'fname' in body:
         fname = normalize_names(body['fname'])
-        if fname == '':
-            raise APIException("fname invalid")
+        if not only_letters(fname):
+            raise APIException("Invalid 'fname' format in request: %r" %fname)
 
         user.fname = fname
 
     if 'lname' in body:
         lname = normalize_names(body['lname'])
-        if lname == '':
-            raise APIException("lname invalid")
+        if not only_letters(lname):
+            raise APIException("Invalid 'lname' format in request: %r" %lname)
 
         user.lname = lname
 
