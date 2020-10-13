@@ -9,12 +9,14 @@ from flask_jwt_extended import (
     create_access_token, create_refresh_token, jwt_required, 
     get_jwt_identity, decode_token
 )
-from ....models import (
+from app.models import (
     User, TokenBlacklist
 )
-from ....extensions import (jwt, db)
-from ....utils.exceptions import APIException
-from ....utils.helpers import (
+from app.extensions import (
+    jwt, db
+)
+from app.utils.exceptions import APIException
+from app.utils.helpers import (
     normalize_names, add_token_to_database, 
     prune_database, valid_email, valid_password, only_letters 
 )

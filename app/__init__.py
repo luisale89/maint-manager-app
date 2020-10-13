@@ -6,7 +6,7 @@ from .blueprints.api.v01 import (
     auth, profile, preset
 )
 
-from .extensions import (
+from app.extensions import (
     assets, migrate, jwt, db, cors
 )
 

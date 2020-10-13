@@ -6,12 +6,12 @@ from flask_jwt_extended import (
     jwt_required, get_jwt_identity
 )
 
-from ....extensions import db
-from ....models import (
+from app.extensions import db
+from app.models import (
     User, Country
 )
-from ....utils.exceptions import APIException
-from ....utils.helpers import (
+from app.utils.exceptions import APIException
+from app.utils.helpers import (
     normalize_names, only_letters
 )
 
