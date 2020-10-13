@@ -1,6 +1,6 @@
 import uuid, re
 
-from flask import Blueprint, url_for, jsonify, request, current_app
+from flask import Blueprint, jsonify, request, current_app
 from sqlalchemy.exc import (
     IntegrityError
 )
@@ -9,17 +9,17 @@ from flask_jwt_extended import (
     create_access_token, create_refresh_token, jwt_required, 
     get_jwt_identity, decode_token
 )
-from ...models import (
+from ....models import (
     User, TokenBlacklist
 )
-from ...extensions import jwt, db
-from ...utils.exceptions import APIException
-from ...utils.helpers import (
+from ....extensions import (jwt, db)
+from ....utils.exceptions import APIException
+from ....utils.helpers import (
     normalize_names, add_token_to_database, 
     prune_database, valid_email, valid_password, only_letters 
 )
 
-auth = Blueprint('auth', __name__, url_prefix='/api/auth')
+auth = Blueprint('auth', __name__, url_prefix='/api/v1/auth')
 
 @auth.errorhandler(APIException)
 def handle_invalid_usage(error):

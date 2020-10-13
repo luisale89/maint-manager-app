@@ -2,9 +2,13 @@ import os
 from flask import Flask
 
 from .blueprints.landing import landing
-from .blueprints.api import auth, profile, preset
+from .blueprints.api.v01 import (
+    auth, profile, preset
+)
 
-from .extensions import assets, migrate, jwt, db
+from .extensions import (
+    assets, migrate, jwt, db, cors
+)
 
 def create_app(test_config=None):
     ''' Application-Factory Pattern '''
@@ -17,6 +21,7 @@ def create_app(test_config=None):
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
+    cors.init_app(app, resources={r"/api/*": {"origins": "*"}})
 
     #blueprints
     app.register_blueprint(landing.bp)

@@ -6,16 +6,16 @@ from flask_jwt_extended import (
     jwt_required, get_jwt_identity
 )
 
-from ...extensions import db
-from ...models import (
+from ....extensions import db
+from ....models import (
     User, Country
 )
-from ...utils.exceptions import APIException
-from ...utils.helpers import (
+from ....utils.exceptions import APIException
+from ....utils.helpers import (
     normalize_names, only_letters
 )
 
-profile = Blueprint('profile', __name__, url_prefix='/api/profile')
+profile = Blueprint('profile', __name__, url_prefix='/api/v1/profile')
 
 @profile.errorhandler(APIException)
 def handle_invalid_usage(error):
