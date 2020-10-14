@@ -114,8 +114,10 @@ class Admin(db.Model):
 class Operator(db.Model):
     __tablename__: 'operator'
     id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
-
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'))
+    #relations
     user = db.relationship('User', back_populates='operator', uselist=False, lazy=True)
+    company = db.relationship('Company', back_populates='operators', uselist=False, lazy=True)
 
     def __repr__(self):
         return '<Operator %r>' % self.id
@@ -132,7 +134,7 @@ class Operator(db.Model):
 class Suscriptor(db.Model):
     __tablename__: 'suscriptor'
     id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
-
+    #relations
     user = db.relationship('User', back_populates='suscriptor', uselist=False, lazy=True)
 
     def __repr__(self):
@@ -182,6 +184,8 @@ class Company(db.Model):
     user = db.relationship('User', back_populates='companies', uselist=False, lazy=True)
     country = db.relationship('Country', back_populates='companies', uselist=False, lazy=True)
     admins = db.relationship('Admin', back_populates="company", lazy=True)
+    operators = db.relationship('Operator', back_populates='company', lazy=True)
+    clients = db.relationship('Client', back_populates='company', lazy=True)
 
     def __repr__(self):
         return '<Company %r>' % self.name
@@ -194,6 +198,58 @@ class Company(db.Model):
             "logo": self.logo,
             "city": self.city,
             "country": self.country.serialize() if self.country is not None else "no_country"
+        }
+
+
+class Client(db.Model):
+    __tablename__:'client'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), unique=True, nullable=False)
+    rif = db.Column(db.String(120), unique=True)
+    logo = db.Column(db.String(db.Text))
+    description = db.Column(db.Text)
+    billing = db.Column(db.String(120)) #This must be a json field, to store all the billing emails to send invoics
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id')) #service company with contract
+    #reations
+    company = db.relationship('Company', back_populates='clients', lazy=True, uselist=False)
+    offices = db.relationship('Office', back_populates='client', lazy=True)
+
+    def __repr__(self):
+        return '<Client %r>' %self.name
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "rif": self.rif,
+            "logo": self.logo,
+            "description": self.description,
+            "billing": self.billing
+        }
+
+class Office(db.Model):
+    __tablename__:'office'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), unique=True, nullable=False)
+    address = db.Column(db.String(120))
+    city = db.Column(db.String(120))
+    location = db.Column(db.Text) # this must be a json field, to store the latitude and longitude of the local
+    op_constant = db.Column(db.Float, default=1.0)
+    client_id = db.Column(db.Integer, db.ForeignKey('client.id'))
+    #relations
+    client = db.relationship('Client', back_populates='offices', lazy=True, uselist=False)
+
+    def __repr__(self):
+        return '<Local %r>' % self.id
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "address": self.address,
+            "city": self.city,
+            "location": self.location,
+            "op_constant": self.op_constant
         }
 
 
