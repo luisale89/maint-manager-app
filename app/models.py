@@ -14,7 +14,7 @@ class Country(db.Model):
     currency = db.Column(db.String(10), nullable=False)
     usd_rate = db.Column(db.Float, nullable=False)
     utc_dif = db.Column(db.Integer, nullable=False)
-    #relations
+    #* relations
     users = db.relationship('User', back_populates='country', lazy=True)
     companies = db.relationship('Company', back_populates="country", lazy=True)
 
@@ -44,7 +44,7 @@ class User(db.Model):
     user_since = db.Column(db.DateTime, default=datetime.utcnow)
     country_id = db.Column(db.Integer, db.ForeignKey('country.id'))
     phone = db.Column(db.String(18))
-    #relations
+    #* relations
     country = db.relationship('Country', back_populates='users', lazy=True, uselist=False)
     admin = db.relationship('Admin', back_populates='user', lazy=True, uselist=False)
     operator = db.relationship('Operator', back_populates='user', lazy=True, uselist=False)
@@ -95,7 +95,7 @@ class Admin(db.Model):
     __tablename__: 'admin'
     id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'))
-    #relations
+    #*relations
     user = db.relationship('User', back_populates='admin', uselist=False, lazy=True)
     company = db.relationship('Company', back_populates='admins', uselist=False, lazy=True)
 
@@ -104,7 +104,8 @@ class Admin(db.Model):
 
     def serialize(self):
         return {
-            "id": self.id
+            "id": self.id,
+            "company": self.company.serialize() if self.company is not None else 'no_company'
         }
 
     def serialize_user(self):
@@ -115,7 +116,7 @@ class Operator(db.Model):
     __tablename__: 'operator'
     id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'))
-    #relations
+    #*relations
     user = db.relationship('User', back_populates='operator', uselist=False, lazy=True)
     company = db.relationship('Company', back_populates='operators', uselist=False, lazy=True)
 
@@ -134,15 +135,17 @@ class Operator(db.Model):
 class Suscriptor(db.Model):
     __tablename__: 'suscriptor'
     id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
-    #relations
+    #*relations
     user = db.relationship('User', back_populates='suscriptor', uselist=False, lazy=True)
+    requests = db.relationship('Request', back_populates='suscriptor', lazy=True)
 
     def __repr__(self):
         return '<Suscriptor %r>' % self.id
 
     def serialize(self):
         return {
-            "id": self.id
+            "id": self.id,
+            "requests": list(map(lambda x: x.serialize(), self.requests)) if len(self.requests) != 0 else 'no_requests'
         }
 
     def serialize_user(self):
@@ -180,7 +183,7 @@ class Company(db.Model):
     city = db.Column(db.String(120))
     user_id = db.Column(db.Integer, db.ForeignKey('user.id')) #owner of the company
     country_id = db.Column(db.Integer, db.ForeignKey('country.id')) #country of the company
-    #relations
+    #*relations
     user = db.relationship('User', back_populates='companies', uselist=False, lazy=True)
     country = db.relationship('Country', back_populates='companies', uselist=False, lazy=True)
     admins = db.relationship('Admin', back_populates="company", lazy=True)
@@ -201,7 +204,7 @@ class Company(db.Model):
         }
 
 
-class Client(db.Model):
+class Client(db.Model): #? client company
     __tablename__:'client'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), unique=True, nullable=False)
@@ -210,7 +213,7 @@ class Client(db.Model):
     description = db.Column(db.Text)
     billing = db.Column(db.String(120)) #This must be a json field, to store all the billing emails to send invoics
     company_id = db.Column(db.Integer, db.ForeignKey('company.id')) #service company with contract
-    #reations
+    #*reations
     company = db.relationship('Company', back_populates='clients', lazy=True, uselist=False)
     offices = db.relationship('Office', back_populates='client', lazy=True)
 
@@ -236,8 +239,9 @@ class Office(db.Model):
     location = db.Column(db.Text) # this must be a json field, to store the latitude and longitude of the local
     op_constant = db.Column(db.Float, default=1.0)
     client_id = db.Column(db.Integer, db.ForeignKey('client.id'))
-    #relations
+    #* relations
     client = db.relationship('Client', back_populates='offices', lazy=True, uselist=False)
+    equipments = db.relationship('Equipment', back_populates='office', lazy=True)
 
     def __repr__(self):
         return '<Local %r>' % self.id
@@ -272,4 +276,140 @@ class TokenBlacklist(db.Model):
             'user_identity': self.user_identity,
             'revoked': self.revoked,
             'expires': self.expires
+        }
+        
+
+class Equipment(db.Model):
+    __tablename__: 'equipment'
+    id = db.Column(db.Integer, primary_key=True)
+    qr_code = db.Column(db.Text, nullable=False)
+    description = db.Column(db.Text)
+    ref_location = db.Column(db.Text)
+    ref_pictures = db.Column(db.Text)
+    health = db.Column(db.String(60))
+    installation_date = db.Column(db.DateTime, default = datetime.utcnow)
+    office_id = db.Column(db.Integer, db.ForeignKey('office.id'), nullable=False)
+    capacity_id = db.Column(db.Integer, db.ForeignKey('capacity.id'), nullable=False)
+    datasheet_id = db.Column(db.Integer, db.ForeignKey('datasheet.id'), nullable=False)
+    #* relations
+    office = db.relationship('Office', back_populates='equipments', lazy=True, uselist=False)
+    capacity = db.relationship('Capacity', back_populates='equipments', lazy=True, uselist=False)
+    datasheet = db.relationship('Datasheet', back_populates='equipments', lazy=True, uselist=False)
+    requests = db.relationship('Request', back_populates='equipment', lazy=True)
+
+    def __repr__(self):
+        return '<Equipment %r>' %self.id
+
+    def serialize(self):
+        return {
+            'id': self.id,
+            'qr_code': self.qr_code,
+            'description': self.description,
+            'ref_location': self.ref_location,
+            'ref_pictures': self.ref_pictures,
+            'health': self.health,
+            'installation_date': self.installation_date,
+            'office_id': self.office_id,
+            'datasheet': self.datasheet.serialize() if self.datasheet is not None else 'no_datasheet'
+        }
+
+    def serialize_requests(self):
+        return list(map(lambda x: x.serialize(), self.requests)) if len(self.requests) else 'no_requests'
+
+
+class Capacity(db.Model):
+    #? cooling capacity of the equipment. repr in.TONS
+    __tablename__:'capacity'
+    id = db.Column(db.Integer, primary_key=True)
+    in_TONS = db.Column(db.integer, nullable=False)
+    #*relations
+    equipments = db.relationship('Equipment', back_populates='capacity', lazy=True)
+    datasheets = db.relationship('Datasheet', back_populates='capacity', lazy=True)
+
+    def __repr__(self) -> str:
+        return '<%r TONS>' %self.in_TONS
+
+    def serialize(self) -> dict:
+        return {
+            "id": self.id,
+            "in_TONS": self.in_TONS
+        }
+
+    def serialize_relations(self) -> dict:
+        return {
+            "equipments": list(map(lambda x: x.serialize(), self.equipments)) if len(self.equipments) != 0 else 'no_equipments',
+            "datasheets": list(map(lambda x: x.serialize(), self.datasheets)) if len(self.datasheets) != 0 else 'no_datasheets'
+        }
+
+
+class Datasheet(db.Model):
+    #? datahsheet of the equipment
+    __tablename__: 'datasheet'
+    id = db.Column(db.Integer, primary_key=True)
+    description = db.Column(db.Text)
+    brand = db.Column(db.String(60))
+    model = db.Column(db.String(60))
+    config = db.Column(db.String(60)) #split, compact, etc
+    power = db.Column(db.Float) #kW power
+    phase_voltage = db.Column(db.Integer) # l-n voltage
+    line_voltage = db.Column(db.Integer) #l-l voltage
+    lra = db.Column(db.Float) # locked rotor amps
+    lra_duration = db.Column(db.Float) #locked rotor amps duracion
+    rla = db.Column(db.Float) # rated load amps
+    hline = db.Column(db.Float) #PSI high pressure
+    lowline = db.Column(db.Float) # PSI low pressure 
+    capacity_id = db.Column(db.Integer, db.ForeignKey('capacity.id'), nullable=False)
+    #*relations
+    capacity = db.relationship('Capacity', back_populates='datasheets', lazy=True, uselist=False)
+    equipments = db.relationship('Equipment', back_populates='datasheet', lazy=True)
+
+    def __repr__(self) -> str:
+        return '<Datasheet %r' %self.id
+
+    def serialize(self) -> dict:
+        return {
+            'id': self.id,
+            'description': self.description,
+            'brand': self.brand,
+            'model': self.model,
+            'config': self.config,
+            'power': self.power,
+            'phase_voltage': self.phase_voltage,
+            'line_voltage': self.line_voltage,
+            'lra': self.lra,
+            'lra_duration': self.lra_duration,
+            'rla': self.rla,
+            'hline': self.hline,
+            'lowline': self.lowline,
+            'capacity': self.capacity.serialize()
+        }
+
+
+class Request(db.Model):
+    #? maintenance request from an user suscribed to the office.
+    __tablename__: 'request'
+    id = db.Column(db.Integer, primary_key=True)
+    description = db.Column(db.Text, nullable=False)
+    description_pics = db.Column(db.Text) #* json to be
+    priority = db.Column(db.String(16), nullable=False)
+    datetime = db.Column(db.DateTime, default=datetime.utcnow)
+    status = db.Column(db.String(16), nullable=False)
+    equipment_id = db.Column(db.Integer, db.ForeignKey('equipment.id'), nullable=False)
+    suscriptor_id = db.Column(db.Integer, db.ForeignKey('suscriptor.id'), nullable=False)
+    #*relations
+    equipment = db.relationship('Equipment', back_populates='requests', lazy=True, uselist=False)
+    suscriptor = db.relationship('Suscriptor', back_populates='requests', lazy=True, uselist=False)
+
+    def __repr__(self) -> str:
+        return '<Request %r>' %self.id
+
+    def serialize(self) -> dict:
+        return {
+            'id': self.id,
+            'description': self.description,
+            'pictures': self.description_pics,
+            'priority': self.priority,
+            'created_at': self.datetime,
+            'status': self.status,
+            'suscriptor': self.suscriptor.serialize_user()
         }
