@@ -6,7 +6,7 @@ from sqlalchemy.exc import (
 )
 from werkzeug.security import check_password_hash
 from flask_jwt_extended import (
-    create_access_token, create_refresh_token, jwt_required, 
+    create_access_token, jwt_required, 
     get_jwt_identity, decode_token
 )
 from app.models import (
@@ -152,9 +152,29 @@ def login():
     })
 
 
-@auth.route('/logout', methods=['GET', 'PUT']) #logout everywhere
+@auth.route('/logout', methods=['GET', 'DELETE']) #logout everywhere
 @jwt_required
 def logout_user():
+    """LOGOUT ENDPOINT - PRIVATE 
+    PERMITE AL USUARIO DESCONECTARSE DE LA APP, ESE ENDPOINT SE ENCARGA
+    DE AGREGAR A LA LISTA NEGRA EL O LOS TOKENS DEL USUARIO QUE ESTÁ
+    HACIENDO LA PETICIÓN.
+
+    methods:
+        DELETE: si se accede a este endpoint con un DELETE req. se está solicitando una
+        desconexión únicamente en la sesión actual. El resto de tokens existentes
+        se mantendrán activos.
+
+        GET: si se accede a este endpoint con un GET req. se está solicitando una 
+        desconexión en todas las sesiones existentes. Todos los tokens existentes estarán en la
+        lista negra de la base de datos.
+
+    Raises:
+        APIException
+
+    Returns:
+        json: information about the transaction.
+    """
     if not request.is_json:
         raise APIException("not JSON request")
 
@@ -167,7 +187,7 @@ def logout_user():
         db.session.commit()
         return jsonify({"success": "user logged-out"}), 200
 
-    elif request.method == 'PUT':
+    elif request.method == 'DELETE':
         token_info = decode_token(request.headers.get('Authorization').replace("Bearer ", ""))
         db_token = TokenBlacklist.query.filter_by(jti=token_info['jti']).first()
         db_token.revoked = True
@@ -175,8 +195,14 @@ def logout_user():
         return jsonify({"success": "user logged out"}), 200
 
 
-@auth.route('/prune-db', methods=['GET']) #This must be a admin only endpoint.
+@auth.route('/prune-db', methods=['GET'])
 def prune_db():
+    """LIMPIAR TOKENS VENCIDOS - ADMIN ENDPOINT
+
+    Returns:
+        json: success msg.
+    """
+    #TODO: Establecer este endpoint con acceso restringido a usuarios administradores.
     prune_database()
     return jsonify({"success": "db pruned correctly"}), 200
 
@@ -195,4 +221,4 @@ def get_all_tokens():
     return jsonify({"user_tokens": response}), 200
 
 
-# Falta agregar endpoint para re establecer la contraseña del usuario.
+#TODO: Falta agregar endpoint para re establecer la contraseña del usuario.
