@@ -1,4 +1,4 @@
-import uuid, re
+import uuid
 
 from flask import Blueprint, jsonify, request, current_app
 from sqlalchemy.exc import (

@@ -7,7 +7,6 @@ from werkzeug.security import generate_password_hash
 
 
 class Country(db.Model):
-    __tablename__: 'country'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), nullable=False, unique=True)
     code = db.Column(db.Integer, nullable=False, unique=True)
@@ -33,7 +32,6 @@ class Country(db.Model):
 
 
 class User(db.Model):
-    __tablename__: 'user'
     id = db.Column(db.Integer, primary_key=True)
     public_id = db.Column(db.String(60), unique=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
@@ -92,7 +90,6 @@ class User(db.Model):
 
 
 class Admin(db.Model):
-    __tablename__: 'admin'
     id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'))
     #*relations
@@ -113,7 +110,6 @@ class Admin(db.Model):
 
 
 class Operator(db.Model):
-    __tablename__: 'operator'
     id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'))
     #*relations
@@ -133,7 +129,6 @@ class Operator(db.Model):
 
 
 class Suscriptor(db.Model):
-    __tablename__: 'suscriptor'
     id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
     #*relations
     user = db.relationship('User', back_populates='suscriptor', uselist=False, lazy=True)
@@ -153,7 +148,6 @@ class Suscriptor(db.Model):
 
 
 class Notification(db.Model):
-    __tablename__: 'notification'
     id = db.Column(db.Integer, primary_key=True)
     user_email = db.Column(db.String(120)) #cuando se crea una noti, se debe agregar el email del usuario target en caso de que no se encuentre en la bd como un usuario registrado.
     title = db.Column(db.String(120), nullable=False)
@@ -175,7 +169,6 @@ class Notification(db.Model):
 
 
 class Company(db.Model):
-    __tablename__: 'company'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), unique=True, nullable=False)
     rif = db.Column(db.String(60), unique=True)
@@ -205,7 +198,6 @@ class Company(db.Model):
 
 
 class Client(db.Model): #? client company
-    __tablename__:'client'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), unique=True, nullable=False)
     rif = db.Column(db.String(120), unique=True)
@@ -231,7 +223,6 @@ class Client(db.Model): #? client company
         }
 
 class Office(db.Model):
-    __tablename__:'office'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), unique=True, nullable=False)
     address = db.Column(db.String(120))
@@ -280,7 +271,6 @@ class TokenBlacklist(db.Model):
         
 
 class Equipment(db.Model):
-    __tablename__: 'equipment'
     id = db.Column(db.Integer, primary_key=True)
     qr_code = db.Column(db.Text, nullable=False)
     description = db.Column(db.Text)
@@ -319,7 +309,6 @@ class Equipment(db.Model):
 
 class Capacity(db.Model):
     #? cooling capacity of the equipment. repr in.TONS
-    __tablename__:'capacity'
     id = db.Column(db.Integer, primary_key=True)
     in_TONS = db.Column(db.integer, nullable=False)
     #*relations
@@ -344,7 +333,6 @@ class Capacity(db.Model):
 
 class Datasheet(db.Model):
     #? datahsheet of the equipment
-    __tablename__: 'datasheet'
     id = db.Column(db.Integer, primary_key=True)
     description = db.Column(db.Text)
     brand = db.Column(db.String(60))
@@ -387,7 +375,6 @@ class Datasheet(db.Model):
 
 class Request(db.Model):
     #? maintenance request from an user suscribed to the office.
-    __tablename__: 'request'
     id = db.Column(db.Integer, primary_key=True)
     description = db.Column(db.Text, nullable=False)
     description_pics = db.Column(db.Text) #* json to be
@@ -412,4 +399,23 @@ class Request(db.Model):
             'created_at': self.datetime,
             'status': self.status,
             'suscriptor': self.suscriptor.serialize_user()
+        }
+
+
+class Planning(db.Model):
+    #? maintenance planning
+    id = db.Column(db.Integer, primary_key=True)
+    description = db.Column(db.Text)
+    priority = db.Column(db.String(16))
+    state = db.Column(db.String(16))
+
+    def __repr__(self) -> str:
+        return '<Planning %r>' %self.id
+
+    def serialize(self) -> dict:
+        return {
+            'id': self.id,
+            'description': self.description,
+            'priority': self.priority,
+            'state': self.state
         }

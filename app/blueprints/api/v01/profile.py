@@ -1,7 +1,5 @@
 
 from flask import Blueprint, url_for, jsonify, request
-from sqlalchemy.exc import IntegrityError
-from werkzeug.security import check_password_hash
 from flask_jwt_extended import (
     jwt_required, get_jwt_identity
 )
