@@ -151,7 +151,7 @@ class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_email = db.Column(db.String(120)) #cuando se crea una noti, se debe agregar el email del usuario target en caso de que no se encuentre en la bd como un usuario registrado.
     title = db.Column(db.String(120), nullable=False)
-    content = db.Column(db.Text, nullable=False)
+    content = db.Column(db.String(120), nullable=False)
     date = db.Column(db.DateTime, default=datetime.utcnow)
     readed = db.Column(db.Boolean, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
@@ -172,7 +172,7 @@ class Company(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), unique=True, nullable=False)
     rif = db.Column(db.String(60), unique=True)
-    logo = db.Column(db.Text)
+    logo = db.Column(db.String(120))
     city = db.Column(db.String(120))
     user_id = db.Column(db.Integer, db.ForeignKey('user.id')) #owner of the company
     country_id = db.Column(db.Integer, db.ForeignKey('country.id')) #country of the company
@@ -201,8 +201,8 @@ class Client(db.Model): #? client company
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), unique=True, nullable=False)
     rif = db.Column(db.String(120), unique=True)
-    logo = db.Column(db.String(db.Text))
-    description = db.Column(db.Text)
+    logo = db.Column(db.String(120))
+    description = db.Column(db.String(120))
     billing = db.Column(db.String(120)) #This must be a json field, to store all the billing emails to send invoics
     company_id = db.Column(db.Integer, db.ForeignKey('company.id')) #service company with contract
     #*reations
@@ -227,7 +227,7 @@ class Office(db.Model):
     name = db.Column(db.String(120), unique=True, nullable=False)
     address = db.Column(db.String(120))
     city = db.Column(db.String(120))
-    location = db.Column(db.Text) # this must be a json field, to store the latitude and longitude of the local
+    location = db.Column(db.String(120)) # this must be a json field, to store the latitude and longitude of the local
     op_constant = db.Column(db.Float, default=1.0)
     client_id = db.Column(db.Integer, db.ForeignKey('client.id'))
     #* relations
@@ -272,10 +272,10 @@ class TokenBlacklist(db.Model):
 
 class Equipment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    qr_code = db.Column(db.Text, nullable=False)
-    description = db.Column(db.Text)
-    ref_location = db.Column(db.Text)
-    ref_pictures = db.Column(db.Text)
+    qr_code = db.Column(db.String(120), nullable=False)
+    description = db.Column(db.String(120))
+    ref_location = db.Column(db.String(120))
+    ref_pictures = db.Column(db.String(120))
     health = db.Column(db.String(60))
     installation_date = db.Column(db.DateTime, default = datetime.utcnow)
     office_id = db.Column(db.Integer, db.ForeignKey('office.id'), nullable=False)
@@ -310,7 +310,7 @@ class Equipment(db.Model):
 class Capacity(db.Model):
     #? cooling capacity of the equipment. repr in.TONS
     id = db.Column(db.Integer, primary_key=True)
-    in_TONS = db.Column(db.integer, nullable=False)
+    in_TONS = db.Column(db.Integer, nullable=False)
     #*relations
     equipments = db.relationship('Equipment', back_populates='capacity', lazy=True)
     datasheets = db.relationship('Datasheet', back_populates='capacity', lazy=True)
@@ -334,7 +334,7 @@ class Capacity(db.Model):
 class Datasheet(db.Model):
     #? datahsheet of the equipment
     id = db.Column(db.Integer, primary_key=True)
-    description = db.Column(db.Text)
+    description = db.Column(db.String(120))
     brand = db.Column(db.String(60))
     model = db.Column(db.String(60))
     config = db.Column(db.String(60)) #split, compact, etc
@@ -376,8 +376,8 @@ class Datasheet(db.Model):
 class Request(db.Model):
     #? maintenance request from an user suscribed to the office.
     id = db.Column(db.Integer, primary_key=True)
-    description = db.Column(db.Text, nullable=False)
-    description_pics = db.Column(db.Text) #* json to be
+    description = db.Column(db.String(120), nullable=False)
+    description_pics = db.Column(db.String(120)) #* json to be
     priority = db.Column(db.String(16), nullable=False)
     datetime = db.Column(db.DateTime, default=datetime.utcnow)
     status = db.Column(db.String(16), nullable=False)
@@ -405,7 +405,7 @@ class Request(db.Model):
 class Planning(db.Model):
     #? maintenance planning
     id = db.Column(db.Integer, primary_key=True)
-    description = db.Column(db.Text)
+    description = db.Column(db.String(120))
     priority = db.Column(db.String(16))
     state = db.Column(db.String(16))
 
