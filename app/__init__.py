@@ -5,9 +5,12 @@ from .blueprints.landing import landing
 from .blueprints.api.v01 import (
     auth, profile, preset
 )
+from .blueprints.admin import (
+    admin_bp
+)
 
 from app.extensions import (
-    assets, migrate, jwt, db, cors
+    assets, migrate, jwt, db, cors, admin
 )
 
 def create_app(test_config=None):
@@ -22,11 +25,13 @@ def create_app(test_config=None):
     migrate.init_app(app, db)
     jwt.init_app(app)
     cors.init_app(app, resources={r"/api/*": {"origins": "*"}})
+    admin.init_app(app)
 
     #blueprints
     app.register_blueprint(landing.bp)
     app.register_blueprint(auth.auth)
     app.register_blueprint(profile.profile)
     app.register_blueprint(preset.preset)
+    app.register_blueprint(admin_bp.bp)
 
     return app
