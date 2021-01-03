@@ -21,11 +21,12 @@ from app.utils.helpers import (
     prune_database, valid_email, valid_password, only_letters 
 )
 
-auth = Blueprint('auth', __name__, url_prefix='/api/v1/auth')
+auth = Blueprint('auth', __name__, url_prefix='/api/v1a/auth')
 
 @auth.errorhandler(APIException)
 def handle_invalid_usage(error):
     return jsonify(error.to_dict()), error.status_code
+
 
 @jwt.token_in_blacklist_loader
 def check_if_token_revoked(decoded_token):
@@ -94,7 +95,7 @@ def sign_up():
         db.session.commit()
     except IntegrityError:
         db.session.rollback()
-        raise APIException("user %r already exists" % body['email']) # la columna email es unica,por eso este error significa solamente que el email ya existe
+        raise APIException("user %r already exists" % body['email']) # la columna email es unica, este error significa solamente que el email ya existe
 
     return jsonify({'success': 'new user created'}), 201
 
@@ -139,16 +140,14 @@ def login():
         raise APIException("user registered with social-api", status_code=401)
 
     if not check_password_hash(user.password_hash, body['password']):
-        raise APIException("wrong password", status_code=404)
+        raise APIException("wrong password, try again", status_code=404)
     
     access_token = create_access_token(identity=user.public_id)
     add_token_to_database(access_token, current_app.config['JWT_IDENTITY_CLAIM'])
 
     return jsonify({
         "user": user.serialize(), 
-        "access_token": access_token, 
-        "notifications": user.serialize_notifications(), 
-        "activity": user.serialize_relations()
+        "access_token": access_token
     })
 
 
@@ -198,7 +197,6 @@ def logout_user():
 @auth.route('/prune-db', methods=['GET'])
 def prune_db():
     """LIMPIAR TOKENS VENCIDOS - ADMIN ENDPOINT
-
     Returns:
         json: success msg.
     """
