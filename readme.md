@@ -1,3 +1,3 @@
-release: pipenv run upgrade
-web: gunicorn wsgi --chdir ./src/
-DATABASE_URL="sqlite:////mnt/d/Desarrollo Web/flask-dev/coldy_lp/database.db"
+Auth microservice in Flask
+
+auth application for autentication of users
