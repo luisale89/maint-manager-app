@@ -14,7 +14,9 @@ from app.extensions import (
     assets, migrate, jwt, db, cors, admin
 )
 
-def handle_api_error(e):
+def handle_not_found(e):
+    ''' Función que permite devolver 404 en json para solicitud de 
+    API y html para solicitud desde un navegador web '''
     if request.path.startswith('/api/'):
         return jsonify(error=str(e)), 404
     else:
@@ -25,9 +27,9 @@ def create_app(test_config=None):
     app = Flask(__name__)
     if test_config == None:
         app.config.from_object(os.environ['APP_SETTINGS'])
-        app.register_error_handler(404, handle_api_error)
+    
+    app.register_error_handler(404, handle_not_found) 
         
-
     #extensions
     assets.init_app(app)
     db.init_app(app)
