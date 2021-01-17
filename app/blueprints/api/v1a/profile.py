@@ -31,7 +31,7 @@ def get_profile():
         "user": {user_public, user_contact, user_log}, 200
     }
     """
-    user = User.query.filter_by(public_id=get_jwt_identity()).first()
+    user = User.query.filter_by(email=get_jwt_identity()).first()
     if user is None:
         raise APIException("user not found", status_code=404)
 
@@ -42,7 +42,7 @@ def get_profile():
 @profile.route('/update', methods=['PUT'])
 @jwt_required
 def update_profile():
-    user = User.query.filter_by(public_id=get_jwt_identity()).first()
+    user = User.query.filter_by(email=get_jwt_identity()).first()
     if user is None:
         raise APIException("user not found", status_code=404)
 
@@ -65,8 +65,8 @@ def update_profile():
 
         user.lname = normalize_names(body['lname'], spaces=True)
 
-    if 'user_picture' in body:
-        user.profile_picture = body['user_picture']
+    if 'profile_img' in body:
+        user.profile_img = body['profile_img']
 
     db.session.commit()
     

@@ -24,7 +24,7 @@ class User(db.Model):
             "public_id" : self.public_id,
             "fname" : self.fname,
             "lname" : self.lname,
-            "profile_img": self.profile_img if self.profile_img is not None else "no_pic",
+            "profile_img": self.profile_img if self.profile_img is not None else "https://server.com/default.png",
             "user_since": self.user_since
         }
 

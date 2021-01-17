@@ -142,7 +142,7 @@ def login():
     if not check_password_hash(user.password_hash, body['password']):
         raise APIException("wrong password, try again", status_code=404)
     
-    access_token = create_access_token(identity=user.public_id)
+    access_token = create_access_token(identity=user.email)
     add_token_to_database(access_token, current_app.config['JWT_IDENTITY_CLAIM'])
 
     return jsonify({
