@@ -20,7 +20,7 @@ def handle_not_found(e):
     if request.path.startswith('/api/'):
         return jsonify(error=str(e)), 404
     else:
-        return render_template('404.html')
+        return render_template('404.html'), 404
 
 def create_app(test_config=None):
     ''' Application-Factory Pattern '''
