@@ -43,6 +43,7 @@ class TokenBlacklist(db.Model):
     token_type = db.Column(db.String(10), nullable=False)
     user_identity = db.Column(db.String(50), nullable=False)
     revoked = db.Column(db.Boolean, nullable=False)
+    revoked_date = db.Column(db.DateTime)
     expires = db.Column(db.DateTime, nullable=False)
 
     def __repr__(self):
@@ -55,5 +56,6 @@ class TokenBlacklist(db.Model):
             'token_type': self.token_type,
             'user_identity': self.user_identity,
             'revoked': self.revoked,
+            'revoked_date': self.revoked_date,
             'expires': self.expires
         }

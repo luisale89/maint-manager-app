@@ -1,15 +1,5 @@
 import os
 from flask import Flask, jsonify, request, render_template
-from webassets.env import url_prefix_join
-
-# from .blueprints.api.v1a import (
-#     auth, profile
-# )
-# from .blueprints.admin.admin import (
-#     admin_bp
-# )
-
-# from .blueprints.landing.landing import landing_bp
 
 from app.blueprints.landing.landing import landing_bp
 from app.blueprints.api_v1.auth import auth_bp

@@ -1,6 +1,7 @@
 import uuid
+from datetime import datetime
 
-from flask import Blueprint, jsonify, request, current_app
+from flask import Blueprint, jsonify, request
 from sqlalchemy.exc import (
     IntegrityError
 )
@@ -18,24 +19,26 @@ from app.extensions import (
 from app.utils.exceptions import APIException
 from app.utils.helpers import (
     normalize_names, add_token_to_database, 
-    prune_database, valid_email, valid_password, only_letters 
+    prune_database, valid_email, valid_password, only_letters
 )
-
-auth_bp = Blueprint('auth_bp', __name__)
-
-@auth_bp.errorhandler(APIException)
-def handle_invalid_usage(error):
-    return jsonify(error.to_dict()), error.status_code
 
 
 @jwt.token_in_blocklist_loader
-def check_if_token_revoked(decoded_token):
-    jti = decoded_token['jti']
+def check_if_token_revoked(jwt_header, jwt_payload):
+    jti = jwt_payload['jti']
     token = TokenBlacklist.query.filter_by(jti=jti).first()
     if token is None:
         return True
     else:
         return token.revoked
+
+
+auth_bp = Blueprint('auth_bp', __name__)
+
+
+@auth_bp.errorhandler(APIException)
+def handle_invalid_usage(error):
+    return jsonify(error.to_dict()), error.status_code
 
 
 @auth_bp.route('/sign-up', methods=['POST']) #normal signup
@@ -143,7 +146,7 @@ def login():
         raise APIException("wrong password, try again", status_code=404)
     
     access_token = create_access_token(identity=user.email)
-    # add_token_to_database(access_token, current_app.config['JWT_IDENTITY_CLAIM'])
+    add_token_to_database(access_token)
 
     return jsonify({
         "user": user.serialize(), 
@@ -183,6 +186,7 @@ def logout_user():
         tokens = TokenBlacklist.query.filter_by(user_identity=user_identity, revoked=False).all()
         for token in tokens:
             token.revoked = True
+            token.revoked_date = datetime.utcnow()
         db.session.commit()
         return jsonify({"success": "user logged-out"}), 200
 
@@ -190,6 +194,7 @@ def logout_user():
         token_info = decode_token(request.headers.get('authorization').replace("Bearer ", ""))
         db_token = TokenBlacklist.query.filter_by(jti=token_info['jti']).first()
         db_token.revoked = True
+        db_token.revoked_date = datetime.utcnow()
         db.session.commit()
         return jsonify({"success": "user logged out"}), 200
 
