@@ -3,7 +3,7 @@ from app.extensions import (
     db, admin
 )
 from flask_admin.contrib.sqla import ModelView
-from app.models import (
+from app.models.auth import (
     User, TokenBlacklist
 )
 

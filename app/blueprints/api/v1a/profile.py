@@ -5,7 +5,7 @@ from flask_jwt_extended import (
 )
 
 from app.extensions import db
-from app.models import (
+from app.models.auth import (
     User
 )
 from app.utils.exceptions import APIException

@@ -9,7 +9,7 @@ from flask_jwt_extended import (
     create_access_token, jwt_required, 
     get_jwt_identity, decode_token
 )
-from app.models import (
+from app.models.auth import (
     User, TokenBlacklist
 )
 from app.extensions import (
