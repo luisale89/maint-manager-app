@@ -1,14 +1,21 @@
 import os
 from flask import Flask, jsonify, request, render_template
+from webassets.env import url_prefix_join
 
-from .blueprints.api.v1a import (
-    auth, profile
-)
-from .blueprints.admin import (
-    admin_bp
-)
+# from .blueprints.api.v1a import (
+#     auth, profile
+# )
+# from .blueprints.admin.admin import (
+#     admin_bp
+# )
 
-from .blueprints.landing import landing
+# from .blueprints.landing.landing import landing_bp
+
+from app.blueprints.landing.landing import landing_bp
+from app.blueprints.api_v1.auth import auth_bp
+from app.blueprints.api_v1.profile import profile_bp
+from app.blueprints.admin.admin import admin_bp
+
 
 from app.extensions import (
     assets, migrate, jwt, db, cors, admin
@@ -39,9 +46,9 @@ def create_app(test_config=None):
     admin.init_app(app)
 
     #blueprints
-    app.register_blueprint(landing.bp)
-    app.register_blueprint(auth.auth)
-    app.register_blueprint(profile.profile)
-    app.register_blueprint(admin_bp.bp)
+    app.register_blueprint(landing_bp)
+    app.register_blueprint(auth_bp, url_prefix="/api-v1/auth")
+    app.register_blueprint(profile_bp, url_prefix="/api-v1/profile")
+    app.register_blueprint(admin_bp, url_prefix='/admin')
 
     return app

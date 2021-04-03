@@ -3,6 +3,7 @@ from flask import Blueprint, jsonify, request
 from flask_jwt_extended import (
     jwt_required, get_jwt_identity
 )
+import jwt
 
 from app.extensions import db
 from app.models.auth import (
@@ -13,15 +14,15 @@ from app.utils.helpers import (
     normalize_names, only_letters
 )
 
-profile = Blueprint('profile', __name__, url_prefix='/api/v1a/profile')
+profile_bp = Blueprint('profile_bp', __name__)
 
-@profile.errorhandler(APIException)
+@profile_bp.errorhandler(APIException)
 def handle_invalid_usage(error):
     return jsonify(error.to_dict()), error.status_code
 
 
-@profile.route('/', methods=['GET'])
-@jwt_required
+@profile_bp.route('/', methods=['GET'])
+@jwt_required()
 def get_profile():
     """
     * PRIVATE ENDPOINT *
@@ -39,9 +40,9 @@ def get_profile():
     return jsonify(data), 200
 
 
-@profile.route('/update', methods=['PUT'])
-@jwt_required
-def update_profile():
+@profile_bp.route('/update', methods=['PUT'])
+@jwt_required()
+def update():
     user = User.query.filter_by(email=get_jwt_identity()).first()
     if user is None:
         raise APIException("user not found", status_code=404)

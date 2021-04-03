@@ -21,14 +21,14 @@ from app.utils.helpers import (
     prune_database, valid_email, valid_password, only_letters 
 )
 
-auth = Blueprint('auth', __name__, url_prefix='/api/v1a/auth')
+auth_bp = Blueprint('auth_bp', __name__)
 
-@auth.errorhandler(APIException)
+@auth_bp.errorhandler(APIException)
 def handle_invalid_usage(error):
     return jsonify(error.to_dict()), error.status_code
 
 
-@jwt.token_in_blacklist_loader
+@jwt.token_in_blocklist_loader
 def check_if_token_revoked(decoded_token):
     jti = decoded_token['jti']
     token = TokenBlacklist.query.filter_by(jti=jti).first()
@@ -38,8 +38,8 @@ def check_if_token_revoked(decoded_token):
         return token.revoked
 
 
-@auth.route('/sign-up', methods=['POST']) #normal signup
-def sign_up():
+@auth_bp.route('/sign-up', methods=['POST']) #normal signup
+def signup():
     """
     * PUBLIC ENDPOINT *
     Crear un nuevo usuario para la aplicación.
@@ -100,7 +100,7 @@ def sign_up():
     return jsonify({'success': 'new user created'}), 201
 
 
-@auth.route('/login', methods=['POST']) #normal login
+@auth_bp.route('/login', methods=['POST']) #normal login
 def login():
     """
     PUBLIC ENDPOINT
@@ -143,7 +143,7 @@ def login():
         raise APIException("wrong password, try again", status_code=404)
     
     access_token = create_access_token(identity=user.email)
-    add_token_to_database(access_token, current_app.config['JWT_IDENTITY_CLAIM'])
+    # add_token_to_database(access_token, current_app.config['JWT_IDENTITY_CLAIM'])
 
     return jsonify({
         "user": user.serialize(), 
@@ -151,8 +151,8 @@ def login():
     })
 
 
-@auth.route('/logout', methods=['GET', 'DELETE']) #logout everywhere
-@jwt_required
+@auth_bp.route('/logout', methods=['GET', 'DELETE']) #logout everywhere
+@jwt_required()
 def logout_user():
     """LOGOUT ENDPOINT - PRIVATE 
     PERMITE AL USUARIO DESCONECTARSE DE LA APP, ESE ENDPOINT SE ENCARGA
@@ -187,14 +187,14 @@ def logout_user():
         return jsonify({"success": "user logged-out"}), 200
 
     elif request.method == 'DELETE':
-        token_info = decode_token(request.headers.get('Authorization').replace("Bearer ", ""))
+        token_info = decode_token(request.headers.get('authorization').replace("Bearer ", ""))
         db_token = TokenBlacklist.query.filter_by(jti=token_info['jti']).first()
         db_token.revoked = True
         db.session.commit()
         return jsonify({"success": "user logged out"}), 200
 
 
-@auth.route('/prune-db', methods=['GET'])
+@auth_bp.route('/prune-db', methods=['GET'])
 def prune_db():
     """LIMPIAR TOKENS VENCIDOS - ADMIN ENDPOINT
     Returns:
@@ -205,18 +205,4 @@ def prune_db():
     return jsonify({"success": "db pruned correctly"}), 200
 
 
-@auth.route('/tokens', methods=['GET']) #Development endpoint only--- delete for production
-@jwt_required
-def get_all_tokens():
-
-    if not request.is_json:
-        raise APIException("not JSON request")
-
-    user_identity = get_jwt_identity()
-    tokens = TokenBlacklist.query.filter_by(user_identity=user_identity).all()
-    response = list(map(lambda x: x.serialize(), tokens))
-
-    return jsonify({"user_tokens": response}), 200
-
-
-#TODO: Falta agregar endpoint para re establecer la contraseña del usuario.
+# #TODO: Falta agregar endpoint para reestablecer la contraseña del usuario.
