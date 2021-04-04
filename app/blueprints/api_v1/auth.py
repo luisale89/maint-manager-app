@@ -114,11 +114,12 @@ def login():
     respuesta: {
         "access_token": jwt_access_token,
         "user": {
-            "id": id
-            "fname": fname,
-            "lname": lname,
-            "user_picture": url_of_pic,
-            "notifications": []
+            "public_id": int,
+            "fname": string,
+            "lname": string,
+            "profile_img": url,
+            "home_address": dict,
+            "personal_phone": string
         }
     }
     """
@@ -159,7 +160,7 @@ def login():
 def logout_user():
     """LOGOUT ENDPOINT - PRIVATE 
     PERMITE AL USUARIO DESCONECTARSE DE LA APP, ESE ENDPOINT SE ENCARGA
-    DE AGREGAR A LA LISTA NEGRA EL O LOS TOKENS DEL USUARIO QUE ESTÁ
+    DE AGREGAR A LA BLOCKLIST EL O LOS TOKENS DEL USUARIO QUE ESTÁ
     HACIENDO LA PETICIÓN.
 
     methods:

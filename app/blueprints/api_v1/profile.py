@@ -27,11 +27,18 @@ def get_profile():
     * PRIVATE ENDPOINT *
     Obtiene los datos de perfil de un usuario.
     requerido: {} # header of the request includes JWT wich is linked to the user email
-    respuesta: {
-        "user": {user_public, user_contact, user_log}, 200
-    }
+    respuesta: 
+        "user": {
+            "public_id": int,
+            "fname": string,
+            "lname": string,
+            "profile_img": url,
+            "home_address": dict,
+            "personal_phone": string,
+            "user_since": utc-datetime,
+        }
     """
-    user = User.query.filter_by(email=get_jwt_identity()).first()
+    user = User.query.filter_by(email=get_jwt_identity()).first() #get_jwt_indentity get the user id from jwt.
     if user is None:
         raise APIException("user not found", status_code=404)
 
@@ -56,17 +63,40 @@ def update():
     if 'fname' in body:
         if not only_letters(body['fname'], spaces=True):
             raise APIException("Invalid 'fname' format in request: %r" %body['fname'])
+        if len(body['fname']) > 60:
+            raise APIException("'fname' string must be 60 characters max")
 
         user.fname = normalize_names(body['fname'], spaces=True)
 
     if 'lname' in body:
         if not only_letters(body['lname'], spaces=True):
             raise APIException("Invalid 'lname' format in request: %r" %body['lname'])
+        if len(body['lname']) > 60:
+            raise APIException("'lname' string must be 60 characters max.")
 
         user.lname = normalize_names(body['lname'], spaces=True)
 
+    if 'home_address' in body:
+        if not type(body['home_address']) is dict:
+            raise APIException("Invalid 'home_address' format in request: %r" %body['home_address'])
+
+        user.home_address = body['home_address']
+
     if 'profile_img' in body:
+        if not type(body['profile_img']) is str:
+            raise APIException("Invalid 'profile_img' format in request: %r" %body['profile_img'])
+        if len(body['profile_img']) > 120:
+            raise APIException("'profile_img' string must be 120 characters max.")
+
         user.profile_img = body['profile_img']
+
+    if 'personal_phone' in body:
+        if not type(body['personal_phone']) is str:
+            raise APIException("Invalid 'personal_phone' format in request: %r" %body['personal_phone']) 
+        if len(body['personal_phone']) > 30:
+            raise APIException("'personal_phone' string must be 30 characters max.")
+       
+        user.personal_phone = body['personal_phone']
 
     db.session.commit()
     
