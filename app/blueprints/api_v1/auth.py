@@ -10,7 +10,7 @@ from flask_jwt_extended import (
     create_access_token, jwt_required, 
     get_jwt_identity, decode_token
 )
-from app.models.auth import (
+from app.models.users import (
     User, TokenBlacklist
 )
 from app.extensions import (
@@ -50,7 +50,9 @@ def signup():
         "email": email,
         "password": psw,
         "fname": fname,
-        "lname": lname
+        "lname": lname,
+        "company_name": string,
+
     }
     respuesta: {
         "success":"created", 201

@@ -4,7 +4,7 @@ import re
 from flask_jwt_extended import decode_token
 
 from app.extensions import db
-from app.models.auth import TokenBlacklist
+from app.models.users import TokenBlacklist
 
 def _epoch_utc_to_datetime(epoch_utc):
     """
