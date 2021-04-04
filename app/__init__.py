@@ -14,10 +14,16 @@ from app.extensions import (
 def handle_not_found(e):
     ''' Función que permite devolver 404 en json para solicitud de 
     API y html para solicitud desde un navegador web '''
-    if request.path.startswith('/api/'):
+    if request.path.startswith('/api'):
         return jsonify(error=str(e)), 404
     else:
         return render_template('404.html'), 404
+
+def handle_not_allowed(e):
+    if request.path.startswith('/api'):
+        return jsonify(error=str(e)), 405
+    else:
+        return render_template('404.html'), 405
 
 def create_app(test_config=None):
     ''' Application-Factory Pattern '''
@@ -25,7 +31,8 @@ def create_app(test_config=None):
     if test_config == None:
         app.config.from_object(os.environ['APP_SETTINGS'])
     
-    app.register_error_handler(404, handle_not_found) 
+    app.register_error_handler(404, handle_not_found)
+    app.register_error_handler(405, handle_not_allowed)
         
     #extensions
     assets.init_app(app)

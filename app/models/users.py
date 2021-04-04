@@ -103,7 +103,7 @@ class HumanResources(db.Model):
         return {
             'relation_date': self.rel_date,
             'user_role': self.user_role,
-            'company': self.company.serialize()
+            'company_profile': self.company.serialize()
         }
         
     def serialize_user(self):

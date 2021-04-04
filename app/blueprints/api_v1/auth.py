@@ -11,7 +11,7 @@ from flask_jwt_extended import (
     get_jwt_identity, decode_token
 )
 from app.models.users import (
-    User, TokenBlacklist
+    User, TokenBlacklist, Company, HumanResources
 )
 from app.extensions import (
     jwt, db
@@ -45,17 +45,18 @@ def handle_invalid_usage(error):
 def signup():
     """
     * PUBLIC ENDPOINT *
-    Crear un nuevo usuario para la aplicación.
+    Crear un nuevo usuario para la aplicación, tomando en cuenta que este usuario también debe 
+    crear una compañía, es decir, todo usuario que complete el formulario de sign-up será un 
+    administrador de su propia compañía.
     requerido: {
         "email": email,
         "password": psw,
         "fname": fname,
         "lname": lname,
         "company_name": string,
-
     }
     respuesta: {
-        "success":"created", 201
+        "success":"created", 200
     }
     """
 
@@ -88,6 +89,10 @@ def signup():
         raise APIException("invalid 'lname' parameter in request %r" % body['lname'])
     lname = normalize_names(body['lname'], spaces=True)
 
+    if 'company_name' not in body:
+        raise APIException("'company_name' not found in request")
+    company_name = normalize_names(body['company_name'], spaces=True)
+
     try:
         new_user = User(
             email=body['email'], 
@@ -96,13 +101,56 @@ def signup():
             lname=lname, 
             public_id=str(uuid.uuid4())
         )
+        new_company = Company(
+            public_id=str(uuid.uuid4()),
+            name=company_name
+        )
+        relation = HumanResources(
+            user=new_user,
+            company=new_company,
+            user_role="Admin"
+        )
         db.session.add(new_user)
+        db.session.add(new_company)
+        db.session.add(relation)
         db.session.commit()
     except IntegrityError:
         db.session.rollback()
         raise APIException("user %r already exists" % body['email']) # la columna email es unica, este error significa solamente que el email ya existe
 
-    return jsonify({'success': 'new user created'}), 201
+    return jsonify({'success': 'new user created'}), 200
+
+
+@auth_bp.route('/email-validation', methods=['GET']) #email validation sent in query params
+def user_validation():
+    """
+    PUBLIC ENDPOINT
+    requerido: {email: email}
+    respuesta: {
+        email: valid,
+        user: user_status,
+        companies: (if valid) -> [companies]
+    }
+    """
+    if not request.is_json:
+        raise APIException("not json request")
+
+    email = request.args.get('email')
+    if email is None:
+        raise APIException("'email' not found in query params")
+    if not valid_email(email):
+        raise APIException("invalid 'email' format in query params: %r" %email)
+
+    user = User.query.filter_by(email=email).first()
+    if user is None:
+        return jsonify({
+            'email_status': 'unregistered'
+        }), 200
+    
+    return jsonify({
+        'email_status': 'registered',
+        'user': dict({'user_status': user.status}, **user.serialize_companies())
+    }), 200
 
 
 @auth_bp.route('/login', methods=['POST']) #normal login
@@ -134,6 +182,8 @@ def login():
 
     if 'email' not in body:
         raise APIException("'email' not found in request")
+    elif not valid_email(body['email']):
+        raise APIException("invalid 'email' format in request: %r" %body['email'])
 
     if 'password' not in body:
         raise APIException("'password' not found in request")
@@ -143,7 +193,9 @@ def login():
         raise APIException("user %r not found" %body['email'], status_code=404)
 
     if user.password_hash is None:
-        raise APIException("user registered with social-api", status_code=401)
+        if user.status is None:
+            raise APIException("user must validate credentials", status_code=400)
+        raise APIException("user registered with social-api", status_code=400)
 
     if not check_password_hash(user.password_hash, body['password']):
         raise APIException("wrong password, try again", status_code=404)
@@ -152,9 +204,9 @@ def login():
     add_token_to_database(access_token)
 
     return jsonify({
-        "user": user.serialize(), 
+        "user": dict(**user.serialize(), **user.serialize_companies()),
         "access_token": access_token
-    })
+    }), 200
 
 
 @auth_bp.route('/logout', methods=['GET', 'DELETE']) #logout everywhere
