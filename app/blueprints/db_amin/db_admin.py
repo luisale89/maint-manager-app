@@ -8,7 +8,7 @@ from app.models.users import (
     User, TokenBlacklist, Company, HumanResources
 )
 
-admin_bp = Blueprint('admin_bp', __name__)
+db_admin_bp = Blueprint('db_admin_bp', __name__)
 
 admin.add_view(ModelView(User, db.session))
 admin.add_view(ModelView(TokenBlacklist, db.session))

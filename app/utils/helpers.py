@@ -37,20 +37,6 @@ def add_token_to_database(encoded_token):
     db.session.commit()
 
 
-def prune_database():
-    """
-    Delete tokens that have expired from the database.
-    How (and if) you call this is entirely up you. You could expose it to an
-    endpoint that only administrators could call, you could run it as a cron,
-    set it up with flask cli, etc.
-    """
-    now = datetime.now()
-    expired = TokenBlacklist.query.filter(TokenBlacklist.expires < now).all()
-    for token in expired:
-        db.session.delete(token)
-    db.session.commit()
-
-
 def normalize_names(name: str, spaces=False) -> str:
     """Normaliza una cadena de caracteres a palabras con Mayúsculas y sin/con espacios.
     Args:

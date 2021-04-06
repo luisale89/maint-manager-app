@@ -18,8 +18,8 @@ from app.extensions import (
 )
 from app.utils.exceptions import APIException
 from app.utils.helpers import (
-    normalize_names, add_token_to_database, 
-    prune_database, valid_email, valid_password, only_letters
+    normalize_names, add_token_to_database,
+    valid_email, valid_password, only_letters
 )
 
 
@@ -122,7 +122,7 @@ def signup():
 
 
 @auth_bp.route('/email-validation', methods=['GET']) #email validation sent in query params
-def user_validation():
+def email_validation():
     """
     PUBLIC ENDPOINT
     requerido: {email: email}
@@ -148,7 +148,7 @@ def user_validation():
         }), 200
     
     return jsonify({
-        'email_status': 'registered',
+        'email_status': 'ok',
         'user': dict({'user_status': user.status}, **user.serialize_companies())
     }), 200
 
@@ -159,7 +159,8 @@ def login():
     PUBLIC ENDPOINT
     requerido: {
         "email": email,
-        "password": password
+        "password": password,
+        "company_public_id": id
     }
     respuesta: {
         "access_token": jwt_access_token,
@@ -169,7 +170,8 @@ def login():
             "lname": string,
             "profile_img": url,
             "home_address": dict,
-            "personal_phone": string
+            "personal_phone": string,
+            "company_profile": dict
         }
     }
     """
@@ -188,9 +190,16 @@ def login():
     if 'password' not in body:
         raise APIException("'password' not found in request")
 
+    if 'company_id' not in body:
+        raise APIException("'Company_id' not found in request")
+
     user = User.query.filter_by(email=body['email']).first()
     if user is None:
         raise APIException("user %r not found" %body['email'], status_code=404)
+
+    company = Company.query.filter_by(public_id=body['company_id']).first()
+    if company is None:
+        raise APIException("company %r not found" %body['company_id'], status_code=404)
 
     if user.password_hash is None:
         if user.status is None:
@@ -204,7 +213,8 @@ def login():
     add_token_to_database(access_token)
 
     return jsonify({
-        "user": dict(**user.serialize(), **user.serialize_companies()),
+        "user": user.serialize(),
+        "company": company.serialize(),
         "access_token": access_token
     }), 200
 
@@ -252,17 +262,6 @@ def logout_user():
         db_token.revoked_date = datetime.utcnow()
         db.session.commit()
         return jsonify({"success": "user logged out"}), 200
-
-
-@auth_bp.route('/prune-db', methods=['GET'])
-def prune_db():
-    """LIMPIAR TOKENS VENCIDOS - ADMIN ENDPOINT
-    Returns:
-        json: success msg.
-    """
-    #TODO: Establecer este endpoint con acceso restringido a usuarios administradores.
-    prune_database()
-    return jsonify({"success": "db pruned correctly"}), 200
 
 
 # #TODO: Falta agregar endpoint para reestablecer la contraseña del usuario.
