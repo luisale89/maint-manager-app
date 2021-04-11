@@ -21,6 +21,9 @@ from app.utils.helpers import (
     normalize_names, add_token_to_database,
     valid_email, valid_password, only_letters, in_request, resp_msg
 )
+from app.utils.mail_api import (
+    send_email
+)
 
 
 @jwt.token_in_blocklist_loader

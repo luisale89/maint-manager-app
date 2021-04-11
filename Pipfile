@@ -16,6 +16,7 @@ flask-migrate = "*"
 flask-jwt-extended = "*"
 flask-cors = "*"
 flask-admin = "*"
+requests = "*"
 
 [dev-packages]
 
