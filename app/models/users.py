@@ -18,7 +18,8 @@ class User(db.Model):
     home_address = db.Column(JSON)
     personal_phone = db.Column(db.String(30))
     user_since = db.Column(db.DateTime, default=datetime.utcnow)
-    status = db.Column(db.String(12))
+    email_confirm = db.Column(db.Boolean)
+    user_status = db.Column(db.String(12))
     #relationships
     work_relations = db.relationship('WorkRelation', back_populates='user', lazy=True)
 

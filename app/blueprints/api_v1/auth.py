@@ -1,7 +1,10 @@
 import uuid
+import os
 from datetime import datetime
-
 from flask import Blueprint, jsonify, request
+from itsdangerous import (
+    URLSafeTimedSerializer, SignatureExpired, BadTimeSignature
+)
 from sqlalchemy.exc import (
     IntegrityError
 )
@@ -10,6 +13,7 @@ from flask_jwt_extended import (
     create_access_token, jwt_required, 
     get_jwt_identity, decode_token
 )
+
 from app.models.users import (
     User, TokenBlacklist, Company, WorkRelation
 )
@@ -38,6 +42,7 @@ def check_if_token_revoked(jwt_header, jwt_payload):
 
 auth_bp = Blueprint('auth_bp', __name__)
 
+serializer = URLSafeTimedSerializer(os.environ['SECRET_KEY'])
 
 @auth_bp.errorhandler(APIException)
 def handle_invalid_usage(error):
@@ -95,7 +100,9 @@ def signup():
             password=password, 
             fname=normalize_names(fname, spaces=True),
             lname=normalize_names(lname, spaces=True), 
-            public_id=str(uuid.uuid4())
+            public_id=str(uuid.uuid4()),
+            email_confirm=False,
+            user_status='active'
         )
         new_company = Company(
             public_id=str(uuid.uuid4()),
@@ -270,4 +277,89 @@ def logout_user():
         return jsonify({"success": "user logged out"}), 200
 
 
-# #TODO: Falta agregar endpoint para reestablecer la contraseña del usuario.
+@auth_bp.route('/password-reset', methods=['GET', 'PUT'])
+def reset_password():
+    '''
+    PASSWORD RESET ENDPOINT - PUBLIC
+
+    Endpoint utiliza ItsDangerous y send_email para que el usuario pueda reestablecer
+    su contraseña en caso de olvidarla.
+
+    Dos métodos son aceptados:
+
+    * GET
+
+    En este metodo, la aplicacion debe recibir el correo del usuario que quiere
+    reestablecer su contraseña dentro de los parametros URL ?'email'='value'
+
+    la aplicación envía un correo electrónico al usuario que solicita el cambio de contraseña
+    y devuelve una respuesta json con el mensaje de exito.
+
+    * PUT
+
+    En este metodo, la aplicacion debe recibir dentro del cuerpo del request json:
+    - token: Token enviado al correo electrónico del usuario.
+    - password: Nueva contraseña del usario, validada previamente en el front-end
+
+    la aplicación envía un mensaje de exito si pudo realizar la actualización de la contraseña.
+    
+    '''
+    if not request.is_json:
+        raise APIException(resp_msg.not_json_rq())
+    
+    if request.method == 'GET':
+        rq = in_request(request.args, ('email',))
+        if not rq['complete']:
+            raise APIException(resp_msg.missing_args(rq['missing']))
+        
+        email = str(request.args.get('email'))
+
+        if not valid_email(email):
+            raise APIException(resp_msg.invalid_format('email', email))
+
+        #?processing
+        user = User.query.filter_by(email=email).first()
+
+        #?response
+        if user is None:
+            raise APIException(resp_msg.not_found('user'), status_code=404)
+
+        token =  serializer.dumps(email, salt='password-reset')
+        msg = send_email(
+            to_list=[{"name": user.fname, "email": user.email}],
+            mail_link=token,
+            subject="Reestablecer contraseña"
+        )
+        if not msg['sent']:
+            raise APIException("email not sent to user, msg: '{}'".format(msg['msg']), status_code=500)
+        
+        return jsonify({"msg": "email was sent to user"}), 200
+
+    if request.method == 'PUT':
+        body = request.get_json(silent=True)
+        if body is None:
+            raise APIException(resp_msg.not_json_rq())
+        
+        rq = in_request(body, ('token', 'password',))
+        if not rq['complete']:
+            raise APIException(resp_msg.missing_args(rq['missing']))
+        
+        token = str(body['token'])
+        password = str(body['password'])
+
+        if not valid_password(password):
+            raise APIException(resp_msg.invalid_pw())
+
+        try:
+            email_loaded = serializer.loads(token, salt='password-reset', max_age=300) #token tiene una duración de 5 minutos
+            user = User.query.filter_by(email=email_loaded).first()
+            user.password = password
+            db.session.commit()
+        
+        except SignatureExpired:
+            raise APIException('token has expired', status_code=401)
+        
+        except BadTimeSignature:
+            raise APIException('invalid token has been detected', status_code=401)
+
+        return jsonify({"msg": "password updated"}), 200
