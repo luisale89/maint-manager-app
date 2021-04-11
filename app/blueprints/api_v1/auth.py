@@ -67,7 +67,7 @@ def signup():
     if body is None:
         raise APIException(resp_msg.not_json_rq())
 
-    rq = in_request(body, tuple(['email', 'password', 'fname', 'lname', 'company_name']))
+    rq = in_request(body, ('email', 'password', 'fname', 'lname', 'company_name',))
     if not rq['complete']:
         raise APIException(resp_msg.missing_args(rq['missing']))
 
@@ -129,14 +129,12 @@ def email_validation():
     if not request.is_json:
         raise APIException(resp_msg.not_json_rq())
 
-    rq = in_request(request.args, tuple(['email']))
+    rq = in_request(request.args, ('email',))
     if not rq['complete']:
         raise APIException(resp_msg.missing_args(rq['missing']))
 
-    email = request.args.get('email')
+    email = str(request.args.get('email'))
 
-    if not isinstance(email, str):
-        raise APIException(resp_msg.invalid_format('email', email))
     if not valid_email(email):
         raise APIException(resp_msg.invalid_format('email', email))
 
@@ -186,7 +184,7 @@ def login():
     if body is None:
         raise APIException(resp_msg.not_json_rq())
 
-    rq = in_request(body, tuple(['email', 'password', 'company_id']))
+    rq = in_request(body, ('email', 'password', 'company_id',))
     if not rq['complete']:
         raise APIException(resp_msg.missing_args(rq['missing']))
 
@@ -202,18 +200,18 @@ def login():
     user = User.query.filter_by(email=email).first()
     if user is None:
         raise APIException(resp_msg.not_found('email'), status_code=404)
-    if user.password_hash is None:
-        if user.status is None:
-            raise APIException("user must validate credentials")
-        raise APIException("user registered with social-api")
     if not check_password_hash(user.password_hash, pw):
         raise APIException("wrong password, try again", status_code=404)
+    if user.status is None:
+        return jsonify({"invalid": "email address not validated by user"}), 400
 
     w_relation = WorkRelation.query.filter_by(user=user, company_id=company_id).first()
     if w_relation is None:
         raise APIException("user is not related with company id: {}".format(company_id), status_code=404)
     
-    access_token = create_access_token(identity=user.email) #TODO: add workrelation_id to jwt
+    additional_claims = {"w_relation": w_relation.id}
+
+    access_token = create_access_token(identity=user.email, additional_claims=additional_claims)
     add_token_to_database(access_token)
 
     #?response
