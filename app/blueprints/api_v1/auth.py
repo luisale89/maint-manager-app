@@ -61,40 +61,42 @@ def signup():
     """
     #?validations
     if not request.is_json:
-        raise APIException("json request only")
+        raise APIException(resp_msg.not_json_rq())
     
     body = request.get_json(silent=True)
     if body is None:
-        raise APIException("not body in request")
+        raise APIException(resp_msg.not_json_rq())
 
     rq = in_request(body, tuple(['email', 'password', 'fname', 'lname', 'company_name']))
     if not rq['complete']:
         raise APIException(resp_msg.missing_args(rq['missing']))
 
-    if not valid_email(body['email']):
-        raise APIException(resp_msg.invalid_format('email', body['email']))
+    email, password, fname, lname, company_name = str(body['email']), str(body['password']), str(body['fname']), str(body['lname']), str(body['company_name'])
 
-    if not valid_password(body['password']):
+    if not valid_email(email):
+        raise APIException(resp_msg.invalid_format('email', email))
+
+    if not valid_password(password):
         raise APIException(resp_msg.invalid_pw())
 
-    if not only_letters(body['fname'], spaces=True):
-        raise APIException(resp_msg.invalid_format('fname', body['fname']))
+    if not only_letters(fname, spaces=True):
+        raise APIException(resp_msg.invalid_format('fname', fname))
 
-    if not only_letters(body['lname'], spaces=True):
-        raise APIException(resp_msg.invalid_format('lname', body['lname']))
-
+    if not only_letters(lname, spaces=True):
+        raise APIException(resp_msg.invalid_format('lname', lname))
+        
     #?processing
     try:
         new_user = User(
             email=body['email'], 
-            password=body['password'], 
-            fname=normalize_names(body['fname'], spaces=True),
-            lname=normalize_names(body['lname'], spaces=True), 
+            password=password, 
+            fname=normalize_names(fname, spaces=True),
+            lname=normalize_names(lname, spaces=True), 
             public_id=str(uuid.uuid4())
         )
         new_company = Company(
             public_id=str(uuid.uuid4()),
-            name=normalize_names(body['company_name'], spaces=True)
+            name=normalize_names(company_name, spaces=True)
         )
         relation = WorkRelation(
             user=new_user,
@@ -133,18 +135,20 @@ def email_validation():
 
     email = request.args.get('email')
 
+    if not isinstance(email, str):
+        raise APIException(resp_msg.invalid_format('email', email))
     if not valid_email(email):
         raise APIException(resp_msg.invalid_format('email', email))
 
     #?processing
     user = User.query.filter_by(email=email).first()
+    
+    #?response
     if user is None:
         return jsonify({
             'email_exists': False,
             'msg': 'User not found in db'
         }), 200
-
-    #?response
     return jsonify({
         'email_exists': True,
         'user': dict({'user_status': user.status}, **user.serialize_companies())
@@ -186,15 +190,13 @@ def login():
     if not rq['complete']:
         raise APIException(resp_msg.missing_args(rq['missing']))
 
-    email = body['email']
-    pw = body['password']
-    company_id = body['company_id']
+    email, pw, company_id = str(body['email']), str(body['password']), body['company_id']
 
     if not valid_email(email):
         raise APIException(resp_msg.invalid_format('email', email))
 
-    if not type(company_id)==int:
-        raise APIException(resp_msg.invalid_format('company_id', value=type(company_id).__name__ ,expected='integer')) 
+    if not isinstance(company_id, int):
+        raise APIException(resp_msg.invalid_format('company_id', type(company_id).__name__ ,'integer')) 
 
     #?processing
     user = User.query.filter_by(email=email).first()

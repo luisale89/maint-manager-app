@@ -1,5 +1,6 @@
 from datetime import datetime
 import re
+from typing import Type
 
 from flask_jwt_extended import decode_token
 
@@ -46,6 +47,11 @@ def normalize_names(name: str, spaces=False) -> str:
     Returns:
         str: Candena de caracteres normalizada.
     """
+    if not isinstance(name, str):
+        raise TypeError("Invalid name argument, string is expected")
+    if not isinstance(spaces, bool):
+        raise TypeError("Invalid spaces argunment, bool is expected")
+
     if not spaces:
         return name.replace(" ", "").capitalize()
     else:
@@ -59,6 +65,8 @@ def valid_email(email: str) -> bool:
     Returns:
         bool: indica si el email es válido (True) o inválido (False)
     """
+    if not isinstance(email, str):
+        raise TypeError("Invalid email argument, str is expected")
     #Regular expression that checks a valid email
     ereg = '^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$'
     return bool(re.search(ereg, email))
@@ -72,6 +80,8 @@ def valid_password(password: str) -> bool:
     Returns:
         bool: resultado de la validación.
     """
+    if not isinstance(password, str):
+        raise TypeError("Invalid password argument, string is expected")
     #Regular expression that checks a secure password
     preg = preg = '^.*(?=.{8,})(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).*$'
     return bool(re.search(preg, password))
@@ -92,8 +102,11 @@ def only_letters(string: str, spaces=False) -> bool:
     sreg = '^[a-zA-ZñáéíóúÑÁÉÍÓÚ]*$'
     #regular expression that check letters and spaces in a string
     sregs = '^[a-zA-Z ñáéíóúÑÁÉÍÓÚ]*$'
-    if string == '' or not isinstance(string, str):
-        return False
+    if not isinstance(string, str):
+        raise TypeError("Invalid string argument, str is expected")
+    if not isinstance(spaces, bool):
+        raise TypeError("Invalid spaces argument, bool is expected")
+    
     if not spaces:
         return bool(re.search(sreg, string))
     else:
@@ -117,6 +130,9 @@ def in_request(request: dict, contains: tuple) -> dict:
     '''
     missing = list()
     complete = False
+    if not isinstance(request, dict) or not isinstance(contains, tuple):
+        raise TypeError("invalid arguments passed")
+    
     for item in contains:
         if request.get(item) is None:
             missing.append(item)
