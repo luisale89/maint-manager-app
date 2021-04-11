@@ -11,7 +11,7 @@ from flask_jwt_extended import (
     get_jwt_identity, decode_token
 )
 from app.models.users import (
-    User, TokenBlacklist, Company, HumanResources
+    User, TokenBlacklist, Company, WorkRelation
 )
 from app.extensions import (
     jwt, db
@@ -19,7 +19,7 @@ from app.extensions import (
 from app.utils.exceptions import APIException
 from app.utils.helpers import (
     normalize_names, add_token_to_database,
-    valid_email, valid_password, only_letters
+    valid_email, valid_password, only_letters, in_request, resp_msg
 )
 
 
@@ -59,7 +59,7 @@ def signup():
         "success":"created", 200
     }
     """
-
+    #?validations
     if not request.is_json:
         raise APIException("json request only")
     
@@ -67,45 +67,36 @@ def signup():
     if body is None:
         raise APIException("not body in request")
 
-    if 'email' not in body:
-        raise APIException("'email' not found in request")
-    elif not valid_email(body['email']):
-        raise APIException("invalid 'email' format in request: %r" % body['email'])
+    rq = in_request(body, tuple(['email', 'password', 'fname', 'lname', 'company_name']))
+    if not rq['complete']:
+        raise APIException(resp_msg.missing_args(rq['missing']))
 
-    if 'password' not in body:
-        raise APIException("'password' not found in request")
-    elif not valid_password(body['password']):
-        raise APIException("insecure 'password' in request: %r" % body['password'])
+    if not valid_email(body['email']):
+        raise APIException(resp_msg.invalid_format('email', body['email']))
 
-    if 'fname' not in body:
-        raise APIException("'fname' not found in request")
+    if not valid_password(body['password']):
+        raise APIException(resp_msg.invalid_pw())
+
     if not only_letters(body['fname'], spaces=True):
-        raise APIException("invalid 'fname' parameter in request: %r" % body['fname'])
-    fname = normalize_names(body['fname'], spaces=True)
+        raise APIException(resp_msg.invalid_format('fname', body['fname']))
 
-    if 'lname' not in body:
-        raise APIException("'lname' not found in request")
     if not only_letters(body['lname'], spaces=True):
-        raise APIException("invalid 'lname' parameter in request %r" % body['lname'])
-    lname = normalize_names(body['lname'], spaces=True)
+        raise APIException(resp_msg.invalid_format('lname', body['lname']))
 
-    if 'company_name' not in body:
-        raise APIException("'company_name' not found in request")
-    company_name = normalize_names(body['company_name'], spaces=True)
-
+    #?processing
     try:
         new_user = User(
             email=body['email'], 
             password=body['password'], 
-            fname=fname,
-            lname=lname, 
+            fname=normalize_names(body['fname'], spaces=True),
+            lname=normalize_names(body['lname'], spaces=True), 
             public_id=str(uuid.uuid4())
         )
         new_company = Company(
             public_id=str(uuid.uuid4()),
-            name=company_name
+            name=normalize_names(body['company_name'], spaces=True)
         )
-        relation = HumanResources(
+        relation = WorkRelation(
             user=new_user,
             company=new_company,
             user_role="Admin"
@@ -116,39 +107,46 @@ def signup():
         db.session.commit()
     except IntegrityError:
         db.session.rollback()
-        raise APIException("user %r already exists" % body['email']) # la columna email es unica, este error significa solamente que el email ya existe
+        raise APIException("user %r already exists in app" % body['email']) # la columna email es unica, este error significa solamente que el email ya existe
 
-    return jsonify({'success': 'new user created'}), 200
+    #?response
+    return jsonify({'success': 'new user created'}), 201
 
 
 @auth_bp.route('/email-validation', methods=['GET']) #email validation sent in query params
 def email_validation():
     """
     PUBLIC ENDPOINT
-    requerido: {email: email}
+    requerido: query string with email: ?email=xx@xx.com
     respuesta: {
-        email: valid,
-        user: user_status,
-        companies: (if valid) -> [companies]
+        email_exists: bool === False if email is not found in db
+        user: dict, => user info, if email exists
     }
     """
+    #?validations
     if not request.is_json:
-        raise APIException("not json request")
+        raise APIException(resp_msg.not_json_rq())
+
+    rq = in_request(request.args, tuple(['email']))
+    if not rq['complete']:
+        raise APIException(resp_msg.missing_args(rq['missing']))
 
     email = request.args.get('email')
-    if email is None:
-        raise APIException("'email' not found in query params")
-    if not valid_email(email):
-        raise APIException("invalid 'email' format in query params: %r" %email)
 
+    if not valid_email(email):
+        raise APIException(resp_msg.invalid_format('email', email))
+
+    #?processing
     user = User.query.filter_by(email=email).first()
     if user is None:
         return jsonify({
-            'email_status': 'unregistered'
+            'email_exists': False,
+            'msg': 'User not found in db'
         }), 200
-    
+
+    #?response
     return jsonify({
-        'email_status': 'ok',
+        'email_exists': True,
         'user': dict({'user_status': user.status}, **user.serialize_companies())
     }), 200
 
@@ -158,9 +156,9 @@ def login():
     """
     PUBLIC ENDPOINT
     requerido: {
-        "email": email,
-        "password": password,
-        "company_public_id": id
+        "email": email, <str>
+        "password": password, <str>
+        "company_id": id <int>
     }
     respuesta: {
         "access_token": jwt_access_token,
@@ -175,46 +173,51 @@ def login():
         }
     }
     """
+    
+    #?validations
     if not request.is_json:
-        raise APIException("not json request")
+        raise APIException(resp_msg.not_json_rq())
 
     body = request.get_json(silent=True)
     if body is None:
-        raise APIException("not json request")
+        raise APIException(resp_msg.not_json_rq())
 
-    if 'email' not in body:
-        raise APIException("'email' not found in request")
-    elif not valid_email(body['email']):
-        raise APIException("invalid 'email' format in request: %r" %body['email'])
+    rq = in_request(body, tuple(['email', 'password', 'company_id']))
+    if not rq['complete']:
+        raise APIException(resp_msg.missing_args(rq['missing']))
 
-    if 'password' not in body:
-        raise APIException("'password' not found in request")
+    email = body['email']
+    pw = body['password']
+    company_id = body['company_id']
 
-    if 'company_id' not in body:
-        raise APIException("'Company_id' not found in request")
+    if not valid_email(email):
+        raise APIException(resp_msg.invalid_format('email', email))
 
-    user = User.query.filter_by(email=body['email']).first()
+    if not type(company_id)==int:
+        raise APIException(resp_msg.invalid_format('company_id', value=type(company_id).__name__ ,expected='integer')) 
+
+    #?processing
+    user = User.query.filter_by(email=email).first()
     if user is None:
-        raise APIException("user %r not found" %body['email'], status_code=404)
-
-    company = Company.query.filter_by(public_id=body['company_id']).first()
-    if company is None:
-        raise APIException("company %r not found" %body['company_id'], status_code=404)
-
+        raise APIException(resp_msg.not_found('email'), status_code=404)
     if user.password_hash is None:
         if user.status is None:
-            raise APIException("user must validate credentials", status_code=400)
-        raise APIException("user registered with social-api", status_code=400)
-
-    if not check_password_hash(user.password_hash, body['password']):
+            raise APIException("user must validate credentials")
+        raise APIException("user registered with social-api")
+    if not check_password_hash(user.password_hash, pw):
         raise APIException("wrong password, try again", status_code=404)
+
+    w_relation = WorkRelation.query.filter_by(user=user, company_id=company_id).first()
+    if w_relation is None:
+        raise APIException("user is not related with company id: {}".format(company_id), status_code=404)
     
-    access_token = create_access_token(identity=user.email)
+    access_token = create_access_token(identity=user.email) #TODO: add workrelation_id to jwt
     add_token_to_database(access_token)
 
+    #?response
     return jsonify({
         "user": user.serialize(),
-        "company": company.serialize(),
+        "company": w_relation.serialize_company(),
         "access_token": access_token
     }), 200
 
@@ -243,7 +246,7 @@ def logout_user():
         json: information about the transaction.
     """
     if not request.is_json:
-        raise APIException("not JSON request")
+        raise APIException(resp_msg.not_json_rq())
 
     user_identity = get_jwt_identity()
 

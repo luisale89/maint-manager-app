@@ -82,11 +82,11 @@ def only_letters(string: str, spaces=False) -> bool:
     Se incluyen letras con acentos, ñ. Se excluyen caracteres especiales
     y numeros.
     Args:
-        string (str): cadena de caracteres a evaluar.
-        spaces (bool, optional): Define si la cadena de caracteres lleva o no espacios en blanco. 
+        * string (str): cadena de caracteres a evaluar.
+        * spaces (bool, optional): Define si la cadena de caracteres lleva o no espacios en blanco. 
         Defaults to False.
     Returns:
-        bool: Respuesta de la validación.
+        *bool: Respuesta de la validación.
     """
     #regular expression that checks only letters string
     sreg = '^[a-zA-ZñáéíóúÑÁÉÍÓÚ]*$'
@@ -98,3 +98,70 @@ def only_letters(string: str, spaces=False) -> bool:
         return bool(re.search(sreg, string))
     else:
         return bool(re.search(sregs, string))
+
+
+def in_request(request: dict, contains: tuple) -> dict:
+    '''
+    Función para validar que un request contiene todos los 
+    elementos necesarios para completar la solicitud del usuario
+
+    Args:
+        * request: dict que contiene todos los elementos enviados por el usuario al endpoint.
+        * contains: tuple que contiene el listado de elmentos que debe existir dentro de request
+        para poder completar correctamente la solicitud del usuario.
+
+    Returns:
+        dict que contiene la siguiente información:
+        resp: {'complete': bool, missing: list} => list == lista elementos faltantes en request
+
+    '''
+    missing = list()
+    complete = False
+    for item in contains:
+        if request.get(item) is None:
+            missing.append(item)
+    if len(missing) == 0:
+        complete = True
+    
+    return {'complete': complete, 'missing': missing}
+
+
+class resp_msg():
+    '''
+    Clase que contiene todos los mensajes de respuesta al usuario que se repiten con 
+    mucha frecuencia en la app.
+    '''
+    def invalid_format(name:str='input', value:str=None, expected:str=None):
+        '''
+        Función que devuelve un mensaje de formato invalido de un input enviado a la app.
+
+        Args:
+        * name: nombre del input, default='input'
+        * value: valor enviado por el usuario, default=None
+        * expected: valor esperado por la app, default=None
+
+        Return:
+        * Devuelve string con mensaje de respuesta.
+
+        '''
+        str1 = "invalid {} format in request".format(name)
+        str2 = ""
+        str3 = ""
+        if value is not None:
+            str2 = ", {} was given".format(value)
+        if expected is not None:
+            str3 = ", {} is expected".format(expected)
+        
+        return str1+str2+str3  
+    
+    def invalid_pw():
+        return "password does not comply with security format"
+
+    def not_found(value="input"):
+        return "{} not found in app".format(value)
+
+    def missing_args(args):
+        return "missing args in request: %r" %args
+
+    def not_json_rq():
+        return "invalid json request"

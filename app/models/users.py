@@ -20,7 +20,7 @@ class User(db.Model):
     user_since = db.Column(db.DateTime, default=datetime.utcnow)
     status = db.Column(db.String(12))
     #relationships
-    companies = db.relationship('HumanResources', back_populates='user', lazy=True)
+    work_relations = db.relationship('WorkRelation', back_populates='user', lazy=True)
 
     def __repr__(self):
         return '<User %r>' % self.id
@@ -44,7 +44,7 @@ class User(db.Model):
 
     def serialize_companies(self):
         return {
-            'companies': list(map(lambda x: x.serialize_company(), self.companies))
+            'companies': list(map(lambda x: x.serialize_company(), self.work_relations))
         }
 
     @property
@@ -65,13 +65,14 @@ class Company(db.Model):
     geo_cordinates = db.Column(JSON)
     logo = db.Column(db.String(120))
     #relationships
-    users = db.relationship('HumanResources', back_populates='company', lazy=True)
+    work_relations = db.relationship('WorkRelation', back_populates='company', lazy=True)
 
     def __repr__(self) -> str:
         return '<Company %r>' %self.id
 
     def serialize(self):
         return {
+            "id": self.id,
             "public_id": self.public_id,
             "name": self.name,
             "address": self.address,
@@ -81,23 +82,23 @@ class Company(db.Model):
 
     def serialize_users(self):
         return {
-            'users': list(map(lambda x: x.serialize_user(), self.users))
+            'users': list(map(lambda x: x.serialize_user(), self.work_relations))
         }
         
 
-class HumanResources(db.Model):
-    __tablename__= 'humanresources'
+class WorkRelation(db.Model):
+    __tablename__= 'workrelation'
     id = db.Column(db.Integer, primary_key=True)
     rel_date = db.Column(db.DateTime, default=datetime.utcnow)
     user_role = db.Column(db.String(12), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     #relationships
-    company = db.relationship('Company', back_populates='users', lazy=True, uselist=False)
-    user = db.relationship('User', back_populates='companies', lazy=True, uselist=False)
+    company = db.relationship('Company', back_populates='work_relations', lazy=True, uselist=False)
+    user = db.relationship('User', back_populates='work_relations', lazy=True, uselist=False)
 
     def __repr__(self) -> str:
-        return '<HumanResources %r>' %self.id
+        return '<WorkRelation %r>' %self.id
 
     def serialize_company(self):
         return {
@@ -110,7 +111,7 @@ class HumanResources(db.Model):
         return {
             'relation_date': self.rel_date,
             'user_role': self.user_role,
-            'user': self.user.serialize()
+            'user_profile': self.user.serialize()
         }
 
 
