@@ -14,12 +14,13 @@ headers = {
     "api-key": api_key
 }
 
-def send_email(recipients:list, sender:dict=None, mail_link="https://google.com", subject=None) -> dict:
+def send_token_email(recipients:list, params:dict, sender:dict=None, subject=None) -> dict:
+    pw_reset_url = "localhost:3000/password-reset/{}?token={}".format(params['temp_url'], params['token'])
     data = {
         "sender": default_sender if sender is None else sender,
         "to": recipients,
         "subject": "Correo de prueba" if subject is None else subject,
-        "htmlContent": "<!DOCTYPE html> <html> <body> <h1>Confirm you email</h1> <p>Please confirm your email address by clicking on the link below</p><p>{}</p></body> </html>".format(mail_link)
+        "htmlContent": "<!DOCTYPE html> <html> <body> <h1>Confirm you email</h1> <p>Please confirm your email address by clicking on the link below</p><p>{}</p></body> </html>".format(pw_reset_url)
     }
     try:
         r = requests.post(headers=headers, json=data, url=smpt_url, timeout=5)

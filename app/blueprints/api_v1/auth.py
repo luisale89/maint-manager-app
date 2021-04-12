@@ -1,7 +1,7 @@
 import uuid
 import os
 from datetime import datetime
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, json, jsonify, request
 from itsdangerous import (
     URLSafeTimedSerializer, SignatureExpired, BadTimeSignature
 )
@@ -26,7 +26,7 @@ from app.utils.helpers import (
     valid_email, valid_password, only_letters, in_request, resp_msg
 )
 from app.utils.mail_api import (
-    send_email
+    send_token_email
 )
 
 
@@ -325,15 +325,16 @@ def password_reset():
             raise APIException(resp_msg.not_found('user'), status_code=404)
 
         token =  serializer.dumps(email, salt='password-reset')
-        msg = send_email(
+        temp_url = str(uuid.uuid4()),
+        msg = send_token_email(
             recipients=[{"name": user.fname, "email": user.email}],
-            mail_link=token,
+            params={"token": token, "temp_url": temp_url},
             subject="Reestablecer contraseña"
         )
         if not msg['sent']:
-            raise APIException("email not sent to user, msg: '{}'".format(msg['msg']), status_code=500)
+            raise APIException("fail on sending email to user, msg: '{}'".format(msg['msg']), status_code=500)
         
-        return jsonify({"success": "email was sent to user"}), 200
+        return jsonify({"success": "email was sent to user", "temp_url": temp_url}), 200
 
     if request.method == 'PUT':
         body = request.get_json(silent=True)
@@ -364,7 +365,11 @@ def password_reset():
             db.session.rollback()
             raise APIException(e.orig.args[0]) # integrityError info
 
-        return jsonify({"success": "user's password updated"}), 200
+        return jsonify({"success": "user password has been updated"}), 200
 
 
-#TODO: Crear endpoint para validar el correo electrónico de un usuario.
+@auth_bp.route('/email-validation', methods=['GET']) #endpoint to validate an user email.
+def email_validation():
+
+    #TODO: Crear endpoint para validar el correo electrónico de un usuario.
+    return jsonify({"success": "ok"}), 200
