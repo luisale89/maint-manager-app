@@ -6,7 +6,7 @@ from itsdangerous import (
     URLSafeTimedSerializer, SignatureExpired, BadTimeSignature
 )
 from sqlalchemy.exc import (
-    IntegrityError
+    IntegrityError, DataError
 )
 from werkzeug.security import check_password_hash
 from flask_jwt_extended import (
@@ -96,7 +96,7 @@ def signup():
     #?processing
     try:
         new_user = User(
-            email=body['email'], 
+            email=email, 
             password=password, 
             fname=normalize_names(fname, spaces=True),
             lname=normalize_names(lname, spaces=True), 
@@ -117,9 +117,9 @@ def signup():
         db.session.add(new_company)
         db.session.add(relation)
         db.session.commit()
-    except IntegrityError:
+    except (IntegrityError, DataError) as e:
         db.session.rollback()
-        raise APIException("user %r already exists in app" % body['email']) # la columna email es unica, este error significa solamente que el email ya existe
+        raise APIException(e.orig.args[0]) # integrityError or DataError info
 
     #?response
     return jsonify({'success': 'new user created'}), 201
@@ -213,7 +213,7 @@ def login():
     if not check_password_hash(user.password_hash, pw):
         raise APIException("wrong password, try again", status_code=404)
     if user.status is None or user.status != 'active':
-        return jsonify({"invalid": "user is not active"}), 400
+        raise APIException("user is not active")
 
     w_relation = WorkRelation.query.filter_by(user=user, company_id=company_id).first()
     if w_relation is None:
@@ -232,9 +232,9 @@ def login():
     }), 200
 
 
-@auth_bp.route('/logout', methods=['GET', 'DELETE']) #logout everywhere
+@auth_bp.route('/logout', methods=['GET', 'DELETE']) #logout session or everywhere
 @jwt_required()
-def logout_user():
+def logout():
     """LOGOUT ENDPOINT - PRIVATE 
     PERMITE AL USUARIO DESCONECTARSE DE LA APP, ESE ENDPOINT SE ENCARGA
     DE AGREGAR A LA BLOCKLIST EL O LOS TOKENS DEL USUARIO QUE ESTÁ
@@ -277,8 +277,8 @@ def logout_user():
         return jsonify({"success": "user logged out"}), 200
 
 
-@auth_bp.route('/password-reset', methods=['GET', 'PUT'])
-def reset_password():
+@auth_bp.route('/password-reset', methods=['GET', 'PUT']) #endpoint to restart password
+def password_reset():
     '''
     PASSWORD RESET ENDPOINT - PUBLIC
 
@@ -326,14 +326,14 @@ def reset_password():
 
         token =  serializer.dumps(email, salt='password-reset')
         msg = send_email(
-            to_list=[{"name": user.fname, "email": user.email}],
+            recipients=[{"name": user.fname, "email": user.email}],
             mail_link=token,
             subject="Reestablecer contraseña"
         )
         if not msg['sent']:
             raise APIException("email not sent to user, msg: '{}'".format(msg['msg']), status_code=500)
         
-        return jsonify({"msg": "email was sent to user"}), 200
+        return jsonify({"success": "email was sent to user"}), 200
 
     if request.method == 'PUT':
         body = request.get_json(silent=True)
@@ -352,18 +352,19 @@ def reset_password():
 
         try:
             email_loaded = serializer.loads(token, salt='password-reset', max_age=300) #token tiene una duración de 5 minutos
+        
+        except (SignatureExpired, BadTimeSignature):
+            raise APIException('invalid token in request', status_code=401)
+
+        try:
             user = User.query.filter_by(email=email_loaded).first()
             user.password = password
             db.session.commit()
-        
-        except SignatureExpired:
-            raise APIException('token has expired', status_code=401)
-        
-        except BadTimeSignature:
-            raise APIException('invalid token has been detected', status_code=401)
+        except (IntegrityError, DataError) as e:
+            db.session.rollback()
+            raise APIException(e.orig.args[0]) # integrityError info
 
-        return jsonify({"msg": "password updated"}), 200
+        return jsonify({"success": "user's password updated"}), 200
 
 
 #TODO: Crear endpoint para validar el correo electrónico de un usuario.
-#TODO: 

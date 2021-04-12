@@ -14,10 +14,10 @@ headers = {
     "api-key": api_key
 }
 
-def send_email(to_list:list, sender:dict=None, mail_link="https://google.com", subject=None):
+def send_email(recipients:list, sender:dict=None, mail_link="https://google.com", subject=None) -> dict:
     data = {
         "sender": default_sender if sender is None else sender,
-        "to": to_list,
+        "to": recipients,
         "subject": "Correo de prueba" if subject is None else subject,
         "htmlContent": "<!DOCTYPE html> <html> <body> <h1>Confirm you email</h1> <p>Please confirm your email address by clicking on the link below</p><p>{}</p></body> </html>".format(mail_link)
     }

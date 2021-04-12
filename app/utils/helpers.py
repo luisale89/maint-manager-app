@@ -1,6 +1,5 @@
 from datetime import datetime
 import re
-from typing import Type
 
 from flask_jwt_extended import decode_token
 
@@ -147,7 +146,7 @@ class resp_msg():
     Clase que contiene todos los mensajes de respuesta al usuario que se repiten con 
     mucha frecuencia en la app.
     '''
-    def invalid_format(name:str='input', value:str=None, expected:str=None):
+    def invalid_format(name:str='input', value:str=None, expected:str=None) -> str:
         '''
         Función que devuelve un mensaje de formato invalido de un input enviado a la app.
 
@@ -170,14 +169,14 @@ class resp_msg():
         
         return str1+str2+str3  
     
-    def invalid_pw():
+    def invalid_pw() -> str:
         return "password does not comply with security format"
 
-    def not_found(value="input"):
+    def not_found(value="input") -> str:
         return "{} not found in app".format(value)
 
-    def missing_args(args):
+    def missing_args(args) -> str:
         return "missing args in request: %r" %args
 
-    def not_json_rq():
+    def not_json_rq() -> str:
         return "invalid json request"
