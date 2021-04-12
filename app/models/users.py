@@ -17,9 +17,9 @@ class User(db.Model):
     profile_img = db.Column(db.String(120))
     home_address = db.Column(JSON)
     personal_phone = db.Column(db.String(30))
-    user_since = db.Column(db.DateTime, default=datetime.utcnow)
+    since = db.Column(db.DateTime, default=datetime.utcnow)
     email_confirm = db.Column(db.Boolean)
-    user_status = db.Column(db.String(12))
+    status = db.Column(db.String(12))
     #relationships
     work_relations = db.relationship('WorkRelation', back_populates='user', lazy=True)
 
@@ -34,7 +34,7 @@ class User(db.Model):
             "profile_img": self.profile_img if self.profile_img is not None else "https://server.com/default.png",
             "home_address": self.home_address,
             "personal_phone": self.personal_phone,
-            "user_since": self.user_since,
+            "user_since": self.since,
             "user_status": self.status
         }
 

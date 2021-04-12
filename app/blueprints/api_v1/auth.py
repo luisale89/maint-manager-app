@@ -102,7 +102,7 @@ def signup():
             lname=normalize_names(lname, spaces=True), 
             public_id=str(uuid.uuid4()),
             email_confirm=False,
-            user_status='active'
+            status='active'
         )
         new_company = Company(
             public_id=str(uuid.uuid4()),
@@ -125,8 +125,8 @@ def signup():
     return jsonify({'success': 'new user created'}), 201
 
 
-@auth_bp.route('/email-validation', methods=['GET']) #email validation sent in query params
-def email_validation():
+@auth_bp.route('/email-query', methods=['GET']) #email validation sent in query params
+def email_query():
     """
     PUBLIC ENDPOINT
     requerido: query string with email: ?email=xx@xx.com
@@ -212,8 +212,8 @@ def login():
         raise APIException(resp_msg.not_found('email'), status_code=404)
     if not check_password_hash(user.password_hash, pw):
         raise APIException("wrong password, try again", status_code=404)
-    if user.status is None:
-        return jsonify({"invalid": "email address not validated by user"}), 400
+    if user.status is None or user.status != 'active':
+        return jsonify({"invalid": "user is not active"}), 400
 
     w_relation = WorkRelation.query.filter_by(user=user, company_id=company_id).first()
     if w_relation is None:
@@ -363,3 +363,7 @@ def reset_password():
             raise APIException('invalid token has been detected', status_code=401)
 
         return jsonify({"msg": "password updated"}), 200
+
+
+#TODO: Crear endpoint para validar el correo electrónico de un usuario.
+#TODO: 
