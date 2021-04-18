@@ -1,7 +1,9 @@
 import uuid
 import os
 from datetime import datetime
-from flask import Blueprint, json, jsonify, request
+from flask import (
+    Blueprint, jsonify, request, render_template
+)
 from itsdangerous import (
     URLSafeTimedSerializer, SignatureExpired, BadTimeSignature
 )
@@ -25,8 +27,8 @@ from app.utils.helpers import (
     normalize_names, add_token_to_database,
     valid_email, valid_password, only_letters, in_request, resp_msg
 )
-from app.utils.mail_api import (
-    send_token_email
+from app.utils.mail_smtp import (
+    send_transactional_email
 )
 
 
@@ -43,6 +45,7 @@ def check_if_token_revoked(jwt_header, jwt_payload):
 auth_bp = Blueprint('auth_bp', __name__)
 
 serializer = URLSafeTimedSerializer(os.environ['SECRET_KEY'])
+main_frontend_url = os.environ['MAIN_FRONTEND_URL']
 
 @auth_bp.errorhandler(APIException)
 def handle_invalid_usage(error):
@@ -159,7 +162,7 @@ def email_query():
         }), 200
     return jsonify({
         'email_exists': True,
-        'user': dict({'user_status': user.status}, **user.serialize_companies())
+        'user': dict({'user_status': user.status}, **user.serialize_companies()),
     }), 200
 
 
@@ -278,22 +281,23 @@ def logout():
 
 
 @auth_bp.route('/password-reset', methods=['GET', 'PUT']) #endpoint to restart password
-def password_reset():
+@auth_bp.route('/email-validation', methods=['GET', 'PUT']) #endpoint to validate password
+def user_validations():
     '''
     PASSWORD RESET ENDPOINT - PUBLIC
 
     Endpoint utiliza ItsDangerous y send_email para que el usuario pueda reestablecer
-    su contraseña en caso de olvidarla.
+    su contraseña o validar el correo electrónico, dependiendo del endpoint.
 
     Dos métodos son aceptados:
 
     * GET
 
-    En este metodo, la aplicacion debe recibir el correo del usuario que quiere
-    reestablecer su contraseña dentro de los parametros URL ?'email'='value'
+    En este metodo, la aplicacion debe recibir el correo electrónico del usuario
+    dentro de los parametros URL ?'email'='value'
 
-    la aplicación envía un correo electrónico al usuario que solicita el cambio de contraseña
-    y devuelve una respuesta json con el mensaje de exito.
+    la aplicación envía un correo electrónico al usuario que solicita el cambio de contraseña o la 
+    validación del correo electrónico y devuelve una respuesta json con el mensaje de exito.
 
     * PUT
 
@@ -325,23 +329,38 @@ def password_reset():
             raise APIException(resp_msg.not_found('user'), status_code=404)
 
         token =  serializer.dumps(email, salt='password-reset')
-        temp_url = str(uuid.uuid4()),
-        msg = send_token_email(
-            recipients=[{"name": user.fname, "email": user.email}],
-            params={"token": token, "temp_url": temp_url},
-            subject="Reestablecer contraseña"
-        )
+        temp_resource = uuid.uuid4().hex
+        
+        if "/password-reset" in request.path:
+            reset_url = main_frontend_url + "/password-reset/{}?token={}".format(temp_resource, token)
+            msg = send_transactional_email(
+                recipients=[{"name": user.fname, "email": user.email}],
+                params={
+                    "html_content": render_template("mail/password-reset.html", params = {"link":reset_url})
+                },
+                subject="Reestablece tu contraseña"
+            )
+        else:
+            validation_url = main_frontend_url + "/email-validation/{}?token={}".format(temp_resource, token),
+            msg = send_transactional_email(
+                recipients=[{"name": user.fname, "email": user.email}],
+                params={
+                    "html_content": render_template("mail/email-validation.html", link = {"link":validation_url})
+                },
+                subject="Confirma tu correo electrónico"
+            )
+
         if not msg['sent']:
             raise APIException("fail on sending email to user, msg: '{}'".format(msg['msg']), status_code=500)
         
-        return jsonify({"success": "email was sent to user", "temp_url": temp_url}), 200
+        return jsonify({"success": "email was sent to user", "temp_resource": temp_resource}), 200
 
     if request.method == 'PUT':
         body = request.get_json(silent=True)
         if body is None:
             raise APIException(resp_msg.not_json_rq())
         
-        rq = in_request(body, ('token', 'password',))
+        rq = in_request(body, ('token',))
         if not rq['complete']:
             raise APIException(resp_msg.missing_args(rq['missing']))
         
@@ -363,13 +382,6 @@ def password_reset():
             db.session.commit()
         except (IntegrityError, DataError) as e:
             db.session.rollback()
-            raise APIException(e.orig.args[0]) # integrityError info
+            raise APIException(e.orig.args[0]) # sqlalchemy error info
 
-        return jsonify({"success": "user password has been updated"}), 200
-
-
-@auth_bp.route('/email-validation', methods=['GET']) #endpoint to validate an user email.
-def email_validation():
-
-    #TODO: Crear endpoint para validar el correo electrónico de un usuario.
-    return jsonify({"success": "ok"}), 200
+        return jsonify({"success": "password has been updated"}), 200
