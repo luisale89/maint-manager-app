@@ -27,8 +27,11 @@ from app.utils.helpers import (
     normalize_names, add_token_to_database,
     valid_email, valid_password, only_letters, in_request, resp_msg
 )
-from app.utils.mail_smtp import (
+from app.utils.email_service import (
     send_transactional_email
+)
+from app.utils.token_factory import (
+    create_url_token, validate_url_token
 )
 
 
@@ -328,20 +331,21 @@ def user_validations():
         if user is None:
             raise APIException(resp_msg.not_found('user'), status_code=404)
 
-        token =  serializer.dumps(email, salt='password-reset')
-        temp_resource = uuid.uuid4().hex
+        # token =  serializer.dumps(email, salt='password-reset')
+        # temp_resource = uuid.uuid4().hex
+        url_token = create_url_token(user_email=email, salt=request.path)
         
         if "/password-reset" in request.path:
-            reset_url = main_frontend_url + "/password-reset/{}?token={}".format(temp_resource, token)
+            reset_url = main_frontend_url + "/password-reset/{}?token={}".format(url_token['resource'], url_token['token'])
             msg = send_transactional_email(
                 recipients=[{"name": user.fname, "email": user.email}],
                 params={
                     "html_content": render_template("mail/password-reset.html", params = {"link":reset_url})
                 },
-                subject="Reestablece tu contraseña"
+                subject="Cambio de tu contraseña"
             )
         else:
-            validation_url = main_frontend_url + "/email-validation/{}?token={}".format(temp_resource, token),
+            validation_url = main_frontend_url + "/email-validation/{}?token={}".format(url_token['resource'], url_token['token']),
             msg = send_transactional_email(
                 recipients=[{"name": user.fname, "email": user.email}],
                 params={
@@ -353,7 +357,8 @@ def user_validations():
         if not msg['sent']:
             raise APIException("fail on sending email to user, msg: '{}'".format(msg['msg']), status_code=500)
         
-        return jsonify({"success": "email was sent to user", "temp_resource": temp_resource}), 200
+        return jsonify({"success": "email sent to user", "temp_resource": url_token['resource']}), 200
+
 
     if request.method == 'PUT':
         body = request.get_json(silent=True)
@@ -363,25 +368,48 @@ def user_validations():
         rq = in_request(body, ('token',))
         if not rq['complete']:
             raise APIException(resp_msg.missing_args(rq['missing']))
+
+        # try:
+        #     email_loaded = serializer.loads(token, salt='password-reset', max_age=300) #token tiene una duración de 5 minutos
         
+        # except (SignatureExpired, BadTimeSignature):
+        #     raise APIException('invalid token in request', status_code=401)
+
         token = str(body['token'])
-        password = str(body['password'])
-
-        if not valid_password(password):
-            raise APIException(resp_msg.invalid_pw())
-
-        try:
-            email_loaded = serializer.loads(token, salt='password-reset', max_age=300) #token tiene una duración de 5 minutos
+        result = validate_url_token(token=token, salt=request.path)
+        if not result['valid']:
+            raise APIException(result['msg'], status_code=401)
         
-        except (SignatureExpired, BadTimeSignature):
-            raise APIException('invalid token in request', status_code=401)
+        identifier = result['id'] #?id value inside url token
+        
+        if "/password-reset" in request.path:
 
-        try:
-            user = User.query.filter_by(email=email_loaded).first()
-            user.password = password
-            db.session.commit()
-        except (IntegrityError, DataError) as e:
-            db.session.rollback()
-            raise APIException(e.orig.args[0]) # sqlalchemy error info
+            if body.get('password') is None:
+                raise APIException(resp_msg.missing_args('password'))
 
-        return jsonify({"success": "password has been updated"}), 200
+            password = str(body['password'])
+
+            if not valid_password(password):
+                raise APIException(resp_msg.invalid_pw())
+
+            try:
+                user = User.query.filter_by(email=identifier).first()
+                user.password = password
+                db.session.commit()
+            except (IntegrityError, DataError) as e:
+                db.session.rollback()
+                raise APIException(e.orig.args[0]) # sqlalchemy error info
+
+            return jsonify({"success": "password has been updated"}), 200
+
+        else:
+    
+            try:
+                user = User.query.filter_by(email=identifier).first()
+                user.email_confirm = True
+                db.session.commit()
+            except (IntegrityError, DataError) as e:
+                db.session.rollback()
+                raise APIException(e.orig.args[0]) #sqlalchemy error info
+
+            return jsonify({"success": "user's email has been validated"}), 200
