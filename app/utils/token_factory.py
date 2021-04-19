@@ -1,8 +1,6 @@
 import os
-from re import sub
-import uuid
 from itsdangerous import (
-    URLSafeTimedSerializer, SignatureExpired, BadTimeSignature
+    URLSafeTimedSerializer, BadData
 )
 
 serializer = URLSafeTimedSerializer(os.environ['SECRET_KEY'])
@@ -17,13 +15,11 @@ def create_url_token(user_email:str, salt:str) -> dict:
     - salt: identificador del parámetro que está siendo encriptado
 
     Return:
-    - dict with token and resource_url to access validation in the frontend
-        {"token":url_token, "resource": temp_resource_url}
+    - token: str
     '''
     
     token =  serializer.dumps(user_email, salt=salt)
-    resource = uuid.uuid4().hex
-    return {"token": token, "resource": resource}
+    return token
 
 
 def validate_url_token(token:str, salt:str) -> dict:
@@ -39,9 +35,9 @@ def validate_url_token(token:str, salt:str) -> dict:
     '''
     try:
         identity = serializer.loads(token, salt=salt, max_age=600) #token lives for 10 minutes
-    except (SignatureExpired, BadTimeSignature):
-        return {"valid": False, "msg": "invalid url token"}
+    except BadData as e:
+        return {"valid": False, "msg": e.message}
     
-    return {"valid": True, "id": identity, "msg": "valid url token"}
+    return {"valid": True, "id": identity}
 
 
