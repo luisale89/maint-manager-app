@@ -4,8 +4,8 @@ from requests.exceptions import (
     ConnectionError, HTTPError
 )
 
-smtp_server = "https://api.sendinblue.com/v3/smtp/email"
-api_key = os.environ['MAIL_API_KEY']
+smtp_server = os.environ['SMTP_API_URL']
+api_key = os.environ['SMTP_API_KEY']
 mail_mode = os.environ['MAIL_MODE']
 default_sender = {"name": "Luis from MyApp", "email": "luis.lucena89@gmail.com"}
 default_recipients = [{"name": "Luis Alejandro", "email": "luis.multicaja@gmail.com"}]
