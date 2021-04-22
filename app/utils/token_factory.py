@@ -39,5 +39,3 @@ def validate_url_token(token:str, salt:str) -> dict:
         return {"valid": False, "msg": e.message}
     
     return {"valid": True, "id": identity}
-
-

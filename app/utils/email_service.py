@@ -6,6 +6,7 @@ from requests.exceptions import (
 
 smtp_server = "https://api.sendinblue.com/v3/smtp/email"
 api_key = os.environ['MAIL_API_KEY']
+mail_mode = os.environ['MAIL_MODE']
 default_sender = {"name": "Luis from MyApp", "email": "luis.lucena89@gmail.com"}
 default_recipients = [{"name": "Luis Alejandro", "email": "luis.multicaja@gmail.com"}]
 default_content = "<!DOCTYPE html><html><body><h1>Email de prueba</h1><p>development mode</p></body></html>"
@@ -36,6 +37,10 @@ def send_transactional_email(params:dict={}, recipients:list=None, sender:dict=N
     - subject: str -> Asunto del correo electrónico.
 
     '''
+    if mail_mode == "development":
+        print(params['template_params'])
+        return {"status_code": 200, "msg": "success", "sent": True}
+
     data = {
         "sender": default_sender if sender is None else sender,
         "to": default_recipients if recipients is None else recipients,

@@ -328,22 +328,27 @@ def user_validations():
             raise APIException(resp_msg.not_found('user'), status_code=404)
 
         token = create_url_token(user_email=email, salt=request.path)
+        url_params = "?email={}&token={}".format(email, token)
         
         if "/password-reset" in request.path:
-            reset_url = main_frontend_url + "/password-reset/?token={}".format(token)
+            reset_url = main_frontend_url + "/password-reset/" + url_params
             msg = send_transactional_email(
                 recipients=[{"name": user.fname, "email": user.email}],
                 params={
-                    "html_content": render_template("mail/password-reset.html", params = {"link":reset_url})
+                    "html_content": render_template("mail/password-reset.html", params = {"link":reset_url}),
+                    "template_params": {"url": reset_url},
+                    # "templateID": 1
                 },
                 subject="Cambio de tu contraseña"
             )
         else:
-            validation_url = main_frontend_url + "/email-validation/?token={}".format(token)
+            validation_url = main_frontend_url + "/email-validation/" + url_params
             msg = send_transactional_email(
                 recipients=[{"name": user.fname, "email": user.email}],
                 params={
-                    "html_content": render_template("mail/email-validation.html", link = {"link":validation_url})
+                    "html_content": render_template("mail/email-validation.html", params = {"link":validation_url}), 
+                    "template_params": {"url": validation_url},
+                    # "templateID": 2
                 },
                 subject="Confirma tu correo electrónico"
             )
