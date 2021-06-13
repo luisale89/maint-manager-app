@@ -3,7 +3,7 @@ import os
 from requests.exceptions import (
     ConnectionError, HTTPError
 )
-
+# constantes para la configuracion del correo
 smtp_server = os.environ['SMTP_API_URL']
 api_key = os.environ['SMTP_API_KEY']
 mail_mode = os.environ['MAIL_MODE']

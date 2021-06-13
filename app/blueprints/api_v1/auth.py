@@ -44,7 +44,7 @@ def check_if_token_revoked(jwt_header, jwt_payload):
 
 auth_bp = Blueprint('auth_bp', __name__)
 
-main_frontend_url = os.environ['MAIN_FRONTEND_URL'] #! decidir si el front envía el target, o está almacenado como variable de entorno
+main_frontend_url = os.environ['MAIN_FRONTEND_URL']
 
 @auth_bp.errorhandler(APIException)
 def handle_invalid_usage(error):
