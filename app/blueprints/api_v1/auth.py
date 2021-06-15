@@ -246,7 +246,7 @@ def logout():
         GET: si se accede a este endpoint con un GET req. se está solicitando una 
         desconexión en la sesion actual. Si se desea eliminar todas las sesiones
         activas, se debe agregar un parametro a la url en la forma:
-            ?logout-all=yes
+            ?close-all=yes
     Raises:
         APIException
 
@@ -258,9 +258,9 @@ def logout():
 
     user_identity = get_jwt_identity()
 
-    logout_all = bool(request.args.get('logout-all'))
+    close_all = bool(request.args.get('close-all'))
 
-    if logout_all:
+    if close_all:
         tokens = TokenBlacklist.query.filter_by(user_indentity=user_identity, revoked=False).all()
         for token in tokens:
             token.revoked = True
