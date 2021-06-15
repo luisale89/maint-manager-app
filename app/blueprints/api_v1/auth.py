@@ -234,7 +234,7 @@ def login():
     }), 200
 
 
-@auth_bp.route('/logout', methods=['GET', 'DELETE']) #logout session or everywhere
+@auth_bp.route('/logout', methods=['GET']) #logout user
 @jwt_required()
 def logout():
     """LOGOUT ENDPOINT - PRIVATE 
@@ -243,14 +243,10 @@ def logout():
     HACIENDO LA PETICIÓN.
 
     methods:
-        DELETE: si se accede a este endpoint con un DELETE req. se está solicitando una
-        desconexión únicamente en la sesión actual. El resto de tokens existentes
-        se mantendrán activos.
-
         GET: si se accede a este endpoint con un GET req. se está solicitando una 
-        desconexión en todas las sesiones existentes. Todos los tokens existentes estarán en la
-        lista negra de la base de datos.
-
+        desconexión en la sesion actual. Si se desea eliminar todas las sesiones
+        activas, se debe agregar un parametro a la url en la forma:
+            ?logout-all=yes
     Raises:
         APIException
 
@@ -262,15 +258,16 @@ def logout():
 
     user_identity = get_jwt_identity()
 
-    if request.method == 'GET':
-        tokens = TokenBlacklist.query.filter_by(user_identity=user_identity, revoked=False).all()
+    logout_all = bool(request.args.get('logout-all'))
+
+    if logout_all:
+        tokens = TokenBlacklist.query.filter_by(user_indentity=user_identity, revoked=False).all()
         for token in tokens:
             token.revoked = True
             token.revoked_date = datetime.utcnow()
         db.session.commit()
         return jsonify({"success": "user logged-out"}), 200
-
-    elif request.method == 'DELETE':
+    else:
         token_info = decode_token(request.headers.get('authorization').replace("Bearer ", ""))
         db_token = TokenBlacklist.query.filter_by(jti=token_info['jti']).first()
         db_token.revoked = True
@@ -280,8 +277,7 @@ def logout():
 
 
 @auth_bp.route('/password-reset', methods=['GET', 'PUT']) #endpoint to restart password
-@auth_bp.route('/email-validation', methods=['GET', 'PUT']) #endpoint to validate password
-def user_validations():
+def pw_reset():
     '''
     PASSWORD RESET ENDPOINT - PUBLIC
 
@@ -295,13 +291,13 @@ def user_validations():
     En este metodo, la aplicacion debe recibir el correo electrónico del usuario
     dentro de los parametros URL ?'email'='value'
 
-    la aplicación envía un correo electrónico al usuario que solicita el cambio de contraseña o la 
-    validación del correo electrónico y devuelve una respuesta json con el mensaje de exito.
+    la aplicación envía un correo electrónico al usuario que solicita el cambio de contraseña
+    y devuelve una respuesta json con el mensaje de exito.
 
     * PUT
 
     En este metodo, la aplicacion debe recibir dentro del cuerpo del request json:
-    - token: Token enviado al correo electrónico del usuario.
+    - token: Token enviado al correo electrónico del usuario, ubicado en parametros URL
     - password: Nueva contraseña del usario, validada previamente en el front-end
 
     la aplicación envía un mensaje de exito si pudo realizar la actualización de la contraseña.
@@ -327,39 +323,125 @@ def user_validations():
         if user is None:
             raise APIException(resp_msg.not_found('user'), status_code=404)
 
-        token = create_url_token(user_email=email, salt=request.path)
+        token = create_url_token(user_email=email, salt='password-reset')
         url_params = "?email={}&token={}".format(email, token)
         
-        if "/password-reset" in request.path:
-            reset_url = main_frontend_url + "/password-reset/" + url_params
-            msg = send_transactional_email(
-                recipients=[{"name": user.fname, "email": user.email}],
-                params={
-                    "html_content": render_template("mail/password-reset.html", params = {"link":reset_url}),
-                    "template_params": {"url": reset_url},
-                    # "templateID": 1
-                },
-                subject="Cambio de tu contraseña"
-            )
-        else:
-            validation_url = main_frontend_url + "/email-validation/" + url_params
-            msg = send_transactional_email(
-                recipients=[{"name": user.fname, "email": user.email}],
-                params={
-                    "html_content": render_template("mail/email-validation.html", params = {"link":validation_url}), 
-                    "template_params": {"url": validation_url},
-                    # "templateID": 2
-                },
-                subject="Confirma tu correo electrónico"
-            )
+        reset_url = main_frontend_url + "/password-reset/" + url_params
+        msg = send_transactional_email(
+            recipients=[{"name": user.fname, "email": user.email}],
+            params={
+                "html_content": render_template("mail/password-reset.html", params = {"link":reset_url}),
+                "template_params": {"url": reset_url},
+                # "templateID": 1
+            },
+            subject="Cambio de tu contraseña"
+        )
 
         if not msg['sent']:
             raise APIException("fail on sending email to user, msg: '{}'".format(msg['msg']), status_code=500)
         
-        return jsonify({"success": "email sent to user"}), 200
+        return jsonify({"success": "validation email sent to user"}), 200
+
+    #?PUT request
+    body = request.get_json(silent=True)
+    if body is None:
+        raise APIException(resp_msg.not_json_rq())
+    
+    rq = in_request(body, ('token', 'new_password'))
+    if not rq['complete']:
+        raise APIException(resp_msg.missing_args(rq['missing']))
+
+    token = str(body['token'])
+    new_pw = str(body['new_password'])
+
+    result = validate_url_token(token=token, salt='password-reset')
+    if not result['valid']:
+        raise APIException(result['msg'], status_code=401)
+    
+    identifier = result['id'] #?id value inside url token, in this case is the user email
+    
+    #?processing
+    if not valid_password(new_pw):
+        raise APIException(resp_msg.invalid_pw())
+
+    try:
+        user = User.query.filter_by(email=identifier).first()
+        user.password = new_pw
+        db.session.commit()
+    except (IntegrityError, DataError) as e:
+        db.session.rollback()
+        raise APIException(e.orig.args[0]) # sqlalchemy error info
+
+    return jsonify({"success": "password has been updated"}), 200
 
 
-    #?PUT request fallback
+@auth_bp.route('/email-validation', methods=['GET', 'PUT'])
+def email_validation():
+    '''
+    EMAIL VALIDATION ENDPOINT - PUBLIC
+
+    Endpoint utiliza ItsDangerous y send_email para que el usuario pueda 
+    validar su correo electrónico al momento de hacer un registro en la app.
+
+    Dos métodos son aceptados:
+
+    * GET
+
+    En este metodo, la aplicacion debe recibir el correo electrónico del usuario
+    dentro de los parametros URL ?'email'='value'
+
+    la aplicación envía un correo electrónico al usuario que solicita la validacion de 
+    la contrasena y devuelve una respuesta json con el mensaje de exito.
+
+    * PUT
+
+    En este metodo, la aplicacion debe recibir dentro del cuerpo del request json:
+    - token: Token enviado al correo electrónico del usuario, ubicado en parametros URL
+
+    la aplicación envía un mensaje de exito si pudo validar el correo electronico.
+    
+    '''
+    if not request.is_json():
+        raise APIException(resp_msg.not_json_rq())
+
+    if request.method == 'GET':
+        rq = in_request(request.args, ('email',))
+        if not rq['complete']:
+            raise APIException(resp_msg.missing_args(rq['missing']))
+        
+        email = str(request.args.get('email'))
+
+        if not valid_email(email):
+            raise APIException(resp_msg.invalid_format('email', email))
+
+        #?processing
+        user = User.query.filter_by(email=email).first()
+
+        #?response
+        if user is None:
+            raise APIException(resp_msg.not_found('user'), status_code=404)
+
+        token = create_url_token(user_email=email, salt='email-validation')
+        url_params = "?email={}&token={}".format(email, token)
+        
+        validation_url = main_frontend_url + "/password-reset/" + url_params
+        mail = send_transactional_email(
+            recipients=[{"name": user.fname, "email": user.email}],
+            params={
+                "html_content": render_template("mail/email-validation.html", params = {"link":validation_url}),
+                "template_params": {"url": validation_url},
+                # "templateID": 1
+            },
+            subject="Confirma tu correo electrónico"
+        )
+
+        if not mail['sent']:
+            raise APIException("fail on sending email to user, msg: '{}'".format(mail['msg']), status_code=500)
+        
+        return jsonify({"success": "validation email sent to user"}), 200
+
+
+    #?PUT request
     body = request.get_json(silent=True)
     if body is None:
         raise APIException(resp_msg.not_json_rq())
@@ -369,41 +451,20 @@ def user_validations():
         raise APIException(resp_msg.missing_args(rq['missing']))
 
     token = str(body['token'])
-    result = validate_url_token(token=token, salt=request.path) #same endpoint, different method
+
+    result = validate_url_token(token=token, salt='email-validation')
     if not result['valid']:
         raise APIException(result['msg'], status_code=401)
     
-    identifier = result['id'] #?id value inside url token
+    identifier = result['id'] #*id value inside url token, in this case is the user email
     
-    #?process
-        #*password-reset endpoint
-    if "/password-reset" in request.path:
-
-        if body.get('password') is None:
-            raise APIException(resp_msg.missing_args('password'))
-
-        password = str(body['password'])
-
-        if not valid_password(password):
-            raise APIException(resp_msg.invalid_pw())
-
-        try:
-            user = User.query.filter_by(email=identifier).first()
-            user.password = password
-            db.session.commit()
-        except (IntegrityError, DataError) as e:
-            db.session.rollback()
-            raise APIException(e.orig.args[0]) # sqlalchemy error info
-
-        return jsonify({"success": "password has been updated"}), 200
-
-    #*email-validation endpoint
+    #?processing
     try:
         user = User.query.filter_by(email=identifier).first()
         user.email_confirm = True
         db.session.commit()
     except (IntegrityError, DataError) as e:
         db.session.rollback()
-        raise APIException(e.orig.args[0]) #sqlalchemy error info
+        raise APIException(e.orig.args[0]) # sqlalchemy error info
 
-    return jsonify({"success": "user's email has been validated"}), 200
+    return jsonify({"success": "email validated"}), 200
