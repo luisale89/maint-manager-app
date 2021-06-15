@@ -367,6 +367,7 @@ def pw_reset():
     try:
         user = User.query.filter_by(email=identifier).first()
         user.password = new_pw
+        user.email_confirm = True #se aprovecha de valdiar el correo, para los casos en que el usuario fue invitado a la app.
         db.session.commit()
     except (IntegrityError, DataError) as e:
         db.session.rollback()
