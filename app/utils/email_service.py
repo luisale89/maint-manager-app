@@ -3,6 +3,14 @@ import os
 from requests.exceptions import (
     ConnectionError, HTTPError
 )
+from flask import (
+    render_template, url_for
+)
+from app.utils.token_factory import (
+    create_url_token
+)
+import os
+
 # constantes para la configuracion del correo
 smtp_server = os.environ['SMTP_API_URL']
 api_key = os.environ['SMTP_API_KEY']
@@ -10,12 +18,28 @@ mail_mode = os.environ['MAIL_MODE']
 default_sender = {"name": "Luis from MyApp", "email": "luis.lucena89@gmail.com"}
 default_recipients = [{"name": "Luis Alejandro", "email": "luis.multicaja@gmail.com"}]
 default_content = "<!DOCTYPE html><html><body><h1>Email de prueba</h1><p>development mode</p></body></html>"
+email_salt = os.environ['EMAIL_VALID_SALT']
+pw_salt = os.environ['PW_VALID_SALT']
+main_frontend_url = os.environ['MAIN_FRONTEND_URL']
 
 headers = {
     "Accept": "application/json",
     "Content-type": "application/json",
     "api-key": api_key
 }
+
+def smtp_request(data) -> dict:
+    try:
+        r = requests.post(headers=headers, json=data, url=smtp_server, timeout=3)
+        r.raise_for_status()
+        return {"status_code": r.status_code, "msg":r.json(), "sent": True}
+
+    except ConnectionError:
+        return {"msg": "connection error to smtp server", "sent": False}
+
+    except HTTPError:
+        return {"msg": r.json(), "sent": False}
+
 
 def send_transactional_email(params:dict={}, recipients:list=None, sender:dict=None, subject:str=None) -> dict:
     '''
@@ -51,13 +75,36 @@ def send_transactional_email(params:dict={}, recipients:list=None, sender:dict=N
         data["templateID"] = params['templateID']
         data["params"] = "null" if params.get("template_params") is None else params['template_params']
 
-    try:
-        r = requests.post(headers=headers, json=data, url=smtp_server, timeout=3)
-        r.raise_for_status()
-        return {"status_code": r.status_code, "msg":r.json(), "sent": True}
+    return smtp_request(data)
 
-    except ConnectionError:
-        return {"msg": "connection error to smtp server", "sent": False}
 
-    except HTTPError:
-        return {"msg": r.json(), "sent": False}
+def send_validation_mail(user:dict=None) -> dict:
+    '''
+    función para enviar a través de una solicitud http a la api del servidor smtp un correo
+    electrónico de validacion. Estos son los parámetros requeridos:
+
+    - email: Correo electronico que debe ser validado por el usuario.
+
+    '''
+    name = user.get('name')
+    email = user.get('email')
+
+    if name is None or email is None:
+        return {"status_code": 400, "msg": "bad request", "sent": False}
+
+    token = create_url_token(user_email=email, salt=email_salt)
+    url_params = "?email={}&token={}".format(email, token)
+    validation_url = main_frontend_url + url_for('landing_bp.email_validation') + url_params
+
+    if mail_mode == "development":
+        print(validation_url)
+        return {"status_code": 200, "msg": "success", "sent": True}
+
+    data = {
+        "sender": default_sender,
+        "to": [{ "name": name, "email": email }],
+        "subject": "Valida tu correo electronico",
+        "htmlContent": render_template("mail/email_confirm.html", params = {"link":validation_url})
+    }
+
+    return smtp_request(data)

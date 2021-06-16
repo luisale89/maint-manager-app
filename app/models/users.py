@@ -9,11 +9,11 @@ from sqlalchemy.dialects.postgresql import JSON
 class User(db.Model):
     __tablename__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
-    public_id = db.Column(db.String(64), unique=True, nullable=False)
+    public_id = db.Column(db.String(128), unique=True, nullable=False)
     email = db.Column(db.String(256), unique=True, nullable=False)
-    password_hash = db.Column(db.String(70), nullable=False)
-    fname = db.Column(db.String(64))
-    lname = db.Column(db.String(64))
+    password_hash = db.Column(db.String(256), nullable=False)
+    fname = db.Column(db.String(128))
+    lname = db.Column(db.String(128))
     profile_img = db.Column(db.String(256))
     home_address = db.Column(JSON)
     personal_phone = db.Column(db.String(32))
@@ -60,11 +60,11 @@ class User(db.Model):
 class Company(db.Model):
     __tablename__ = 'company'
     id = db.Column(db.Integer, primary_key=True)
-    public_id = db.Column(db.String(64), unique=True, nullable=False)
-    name = db.Column(db.String(60), nullable=False)
+    public_id = db.Column(db.String(128), unique=True, nullable=False)
+    name = db.Column(db.String(128), nullable=False)
     address = db.Column(JSON)
     geo_cordinates = db.Column(JSON)
-    logo = db.Column(db.String(120))
+    logo = db.Column(db.String(128))
     #relationships
     work_relations = db.relationship('WorkRelation', back_populates='company', lazy=True)
 

@@ -19,7 +19,7 @@ def handle_not_found(e):
     if request.path.startswith('/api'):
         return jsonify(error=str(e)), 404
     else:
-        return render_template('404.html'), 404
+        return render_template('landing/404.html'), 404
 
 def handle_not_allowed(e):
     ''' Función que permite devolver 405 en json para solicitud de 
@@ -27,7 +27,7 @@ def handle_not_allowed(e):
     if request.path.startswith('/api'):
         return jsonify(error=str(e)), 405
     else:
-        return render_template('404.html'), 405 #!desarrollar template para 405
+        return render_template('landing/404.html'), 405 #!desarrollar template para 405
 
 def create_app(test_config=None):
     ''' Application-Factory Pattern '''

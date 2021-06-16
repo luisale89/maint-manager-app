@@ -25,7 +25,7 @@ from app.utils.helpers import (
     valid_email, valid_password, only_letters, in_request, resp_msg
 )
 from app.utils.email_service import (
-    send_transactional_email
+    send_transactional_email, send_validation_mail
 )
 from app.utils.token_factory import (
     create_url_token, validate_url_token
@@ -45,6 +45,8 @@ def check_if_token_revoked(jwt_header, jwt_payload):
 auth_bp = Blueprint('auth_bp', __name__)
 
 main_frontend_url = os.environ['MAIN_FRONTEND_URL']
+email_salt = os.environ['EMAIL_VALID_SALT']
+pw_salt = os.environ['PW_VALID_SALT']
 
 @auth_bp.errorhandler(APIException)
 def handle_invalid_usage(error):
@@ -123,8 +125,13 @@ def signup():
         db.session.rollback()
         raise APIException(e.orig.args[0]) # integrityError or DataError info
 
+    mail = send_validation_mail({"name": fname, "email": email})
+
+    if not mail['sent']:
+        raise APIException("fail on sending validation email to user, msg: '{}'".format(mail['msg']), status_code=500)
+
     #?response
-    return jsonify({'success': 'new user created'}), 201
+    return jsonify({'success': 'new user created, complete email validation is required'}), 201
 
 
 @auth_bp.route('/email-query', methods=['GET']) #email validation sent in query params
@@ -323,7 +330,7 @@ def pw_reset():
         if user is None:
             raise APIException(resp_msg.not_found('user'), status_code=404)
 
-        token = create_url_token(user_email=email, salt='password-reset')
+        token = create_url_token(user_email=email, salt=pw_salt)
         url_params = "?email={}&token={}".format(email, token)
         
         reset_url = main_frontend_url + "/password-reset/" + url_params
@@ -354,7 +361,7 @@ def pw_reset():
     token = str(body['token'])
     new_pw = str(body['new_password'])
 
-    result = validate_url_token(token=token, salt='password-reset')
+    result = validate_url_token(token=token, salt=pw_salt)
     if not result['valid']:
         raise APIException(result['msg'], status_code=401)
     
@@ -376,7 +383,7 @@ def pw_reset():
     return jsonify({"success": "password has been updated"}), 200
 
 
-@auth_bp.route('/email-validation', methods=['GET', 'PUT'])
+@auth_bp.route('/email-validation', methods=['GET'])
 def email_validation():
     '''
     EMAIL VALIDATION ENDPOINT - PUBLIC
@@ -391,81 +398,32 @@ def email_validation():
     En este metodo, la aplicacion debe recibir el correo electrónico del usuario
     dentro de los parametros URL ?'email'='value'
 
-    la aplicación envía un correo electrónico al usuario que solicita la validacion de 
-    la contrasena y devuelve una respuesta json con el mensaje de exito.
-
-    * PUT
-
-    En este metodo, la aplicacion debe recibir dentro del cuerpo del request json:
-    - token: Token enviado al correo electrónico del usuario, ubicado en parametros URL
-
-    la aplicación envía un mensaje de exito si pudo validar el correo electronico.
+    la aplicación envía un correo electrónico al usuario que solicita la validacion del correo
+    electronivo y devuelve una respuesta json con el mensaje de exito.
     
     '''
-    if not request.is_json():
+    if not request.is_json:
         raise APIException(resp_msg.not_json_rq())
 
-    if request.method == 'GET':
-        rq = in_request(request.args, ('email',))
-        if not rq['complete']:
-            raise APIException(resp_msg.missing_args(rq['missing']))
-        
-        email = str(request.args.get('email'))
-
-        if not valid_email(email):
-            raise APIException(resp_msg.invalid_format('email', email))
-
-        #?processing
-        user = User.query.filter_by(email=email).first()
-
-        #?response
-        if user is None:
-            raise APIException(resp_msg.not_found('user'), status_code=404)
-
-        token = create_url_token(user_email=email, salt='email-validation')
-        url_params = "?email={}&token={}".format(email, token)
-        
-        validation_url = main_frontend_url + "/password-reset/" + url_params
-        mail = send_transactional_email(
-            recipients=[{"name": user.fname, "email": user.email}],
-            params={
-                "html_content": render_template("mail/email-validation.html", params = {"link":validation_url}),
-                "template_params": {"url": validation_url},
-                # "templateID": 1
-            },
-            subject="Confirma tu correo electrónico"
-        )
-
-        if not mail['sent']:
-            raise APIException("fail on sending email to user, msg: '{}'".format(mail['msg']), status_code=500)
-        
-        return jsonify({"success": "validation email sent to user"}), 200
-
-
-    #?PUT request
-    body = request.get_json(silent=True)
-    if body is None:
-        raise APIException(resp_msg.not_json_rq())
-    
-    rq = in_request(body, ('token',))
+    rq = in_request(request.args, ('email',))
     if not rq['complete']:
         raise APIException(resp_msg.missing_args(rq['missing']))
-
-    token = str(body['token'])
-
-    result = validate_url_token(token=token, salt='email-validation')
-    if not result['valid']:
-        raise APIException(result['msg'], status_code=401)
     
-    identifier = result['id'] #*id value inside url token, in this case is the user email
-    
+    email = str(request.args.get('email'))
+
+    if not valid_email(email):
+        raise APIException(resp_msg.invalid_format('email', email))
+
     #?processing
-    try:
-        user = User.query.filter_by(email=identifier).first()
-        user.email_confirm = True
-        db.session.commit()
-    except (IntegrityError, DataError) as e:
-        db.session.rollback()
-        raise APIException(e.orig.args[0]) # sqlalchemy error info
+    user = User.query.filter_by(email=email).first()
 
-    return jsonify({"success": "email validated"}), 200
+    #?response
+    if user is None:
+        raise APIException(resp_msg.not_found('user'), status_code=404)
+
+    mail = send_validation_mail({"name": user.fname, "email": user.email})
+
+    if not mail['sent']:
+        raise APIException("fail on sending email to user, msg: '{}'".format(mail['msg']), status_code=500)
+    
+    return jsonify({"success": "mail validation request sent to user"}), 200
