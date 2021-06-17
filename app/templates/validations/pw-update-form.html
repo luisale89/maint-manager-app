@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block page_content -%}
+<div id="pw-change-form">
+    <form action="{{  url_for('landing_bp.pw_reset')  }}" method="POST">
+        <label for="psw">Nueva Contraseña:</label>
+        <input 
+            type="password" 
+            id="psw" 
+            name="password" 
+            pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}" 
+            title="Debe contener al menos un numero, una letra mayúscula y minúscula, y al menos 8 caracteres" 
+            required
+        />
+        <label for="re-psw">Repite tu nueva contraseña:</label>
+        <input 
+            type="password" 
+            id="re-psw" 
+            name="re-password"
+            pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}"
+            required
+        />
+        <input type="submit" value="Submit" />
+    </form>
+</div>
+{%- endblock page_content %}

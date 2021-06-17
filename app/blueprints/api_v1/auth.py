@@ -25,10 +25,7 @@ from app.utils.helpers import (
     valid_email, valid_password, only_letters, in_request, resp_msg
 )
 from app.utils.email_service import (
-    send_transactional_email, send_validation_mail
-)
-from app.utils.token_factory import (
-    create_url_token, validate_url_token
+    send_validation_mail, send_pwchange_mail
 )
 
 
@@ -283,7 +280,7 @@ def logout():
         return jsonify({"success": "user logged out"}), 200
 
 
-@auth_bp.route('/password-reset', methods=['GET', 'PUT']) #endpoint to restart password
+@auth_bp.route('/password-reset', methods=['GET']) #endpoint to restart password
 def pw_reset():
     '''
     PASSWORD RESET ENDPOINT - PUBLIC
@@ -291,7 +288,7 @@ def pw_reset():
     Endpoint utiliza ItsDangerous y send_email para que el usuario pueda reestablecer
     su contraseña o validar el correo electrónico, dependiendo del endpoint.
 
-    Dos métodos son aceptados:
+    métodos aceptados:
 
     * GET
 
@@ -300,87 +297,33 @@ def pw_reset():
 
     la aplicación envía un correo electrónico al usuario que solicita el cambio de contraseña
     y devuelve una respuesta json con el mensaje de exito.
-
-    * PUT
-
-    En este metodo, la aplicacion debe recibir dentro del cuerpo del request json:
-    - token: Token enviado al correo electrónico del usuario, ubicado en parametros URL
-    - password: Nueva contraseña del usario, validada previamente en el front-end
-
-    la aplicación envía un mensaje de exito si pudo realizar la actualización de la contraseña.
     
     '''
     if not request.is_json:
         raise APIException(resp_msg.not_json_rq())
     
-    if request.method == 'GET':
-        rq = in_request(request.args, ('email',))
-        if not rq['complete']:
-            raise APIException(resp_msg.missing_args(rq['missing']))
-        
-        email = str(request.args.get('email'))
-
-        if not valid_email(email):
-            raise APIException(resp_msg.invalid_format('email', email))
-
-        #?processing
-        user = User.query.filter_by(email=email).first()
-
-        #?response
-        if user is None:
-            raise APIException(resp_msg.not_found('user'), status_code=404)
-
-        token = create_url_token(user_email=email, salt=pw_salt)
-        url_params = "?email={}&token={}".format(email, token)
-        
-        reset_url = main_frontend_url + "/password-reset/" + url_params
-        msg = send_transactional_email(
-            recipients=[{"name": user.fname, "email": user.email}],
-            params={
-                "html_content": render_template("mail/password-reset.html", params = {"link":reset_url}),
-                "template_params": {"url": reset_url},
-                # "templateID": 1
-            },
-            subject="Cambio de tu contraseña"
-        )
-
-        if not msg['sent']:
-            raise APIException("fail on sending email to user, msg: '{}'".format(msg['msg']), status_code=500)
-        
-        return jsonify({"success": "validation email sent to user"}), 200
-
-    #?PUT request
-    body = request.get_json(silent=True)
-    if body is None:
-        raise APIException(resp_msg.not_json_rq())
-    
-    rq = in_request(body, ('token', 'new_password'))
+    rq = in_request(request.args, ('email',))
     if not rq['complete']:
         raise APIException(resp_msg.missing_args(rq['missing']))
-
-    token = str(body['token'])
-    new_pw = str(body['new_password'])
-
-    result = validate_url_token(token=token, salt=pw_salt)
-    if not result['valid']:
-        raise APIException(result['msg'], status_code=401)
     
-    identifier = result['id'] #?id value inside url token, in this case is the user email
-    
+    email = str(request.args.get('email'))
+
+    if not valid_email(email):
+        raise APIException(resp_msg.invalid_format('email', email))
+
     #?processing
-    if not valid_password(new_pw):
-        raise APIException(resp_msg.invalid_pw())
+    user = User.query.filter_by(email=email).first()
 
-    try:
-        user = User.query.filter_by(email=identifier).first()
-        user.password = new_pw
-        user.email_confirm = True #se aprovecha de valdiar el correo, para los casos en que el usuario fue invitado a la app.
-        db.session.commit()
-    except (IntegrityError, DataError) as e:
-        db.session.rollback()
-        raise APIException(e.orig.args[0]) # sqlalchemy error info
+    #?response
+    if user is None:
+        raise APIException(resp_msg.not_found('user'), status_code=404)
 
-    return jsonify({"success": "password has been updated"}), 200
+    mail = send_pwchange_mail({"name": user.fname, "email": user.email})
+
+    if not mail['sent']:
+        raise APIException("fail on sending email to user, msg: '{}'".format(mail['msg']), status_code=500)
+    
+    return jsonify({"success": "password change validation sent to user"}), 200
 
 
 @auth_bp.route('/email-validation', methods=['GET'])
@@ -426,4 +369,4 @@ def email_validation():
     if not mail['sent']:
         raise APIException("fail on sending email to user, msg: '{}'".format(mail['msg']), status_code=500)
     
-    return jsonify({"success": "mail validation request sent to user"}), 200
+    return jsonify({"success": "validation request sent to user"}), 200
