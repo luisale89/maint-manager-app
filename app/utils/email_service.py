@@ -94,7 +94,7 @@ def send_validation_mail(user:dict=None) -> dict:
 
     token = create_url_token(user_email=email, salt=email_salt)
     url_params = "?email={}&token={}".format(email, token)
-    validation_url = main_frontend_url + url_for('landing_bp.email_validation') + url_params
+    validation_url = main_frontend_url + url_for('validations_bp.email_validation') + url_params
 
     data = {
         "sender": default_sender,
@@ -122,7 +122,7 @@ def send_pwchange_mail(user:dict=None) -> dict:
 
     token = create_url_token(user_email=email, salt=pw_salt)
     url_params = "?email={}&token={}".format(email, token)
-    validation_url = main_frontend_url + url_for('landing_bp.pw_reset') + url_params
+    validation_url = main_frontend_url + url_for('validations_bp.pw_reset') + url_params
 
     data = {
         "sender": default_sender,

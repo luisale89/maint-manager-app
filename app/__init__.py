@@ -1,13 +1,16 @@
 import os
 from flask import Flask, jsonify, request, render_template
+from app.blueprints import api_v1
 
-from app.blueprints.landing.landing import landing_bp
-from app.blueprints.api_v1.auth import auth_bp
-from app.blueprints.api_v1.profile import profile_bp
-from app.blueprints.api_v1.admin import admin_bp
+from app.blueprints.api_v1 import (
+    auth, profile, maintenance
+)
 
-from app.blueprints.db_amin.db_admin import db_admin_bp #development only
+from app.blueprints.landing import (
+    landing, validations
+)
 
+from app.blueprints.db_amin.db_admin import db_admin_bp #!development only
 
 from app.extensions import (
     assets, migrate, jwt, db, cors, admin
@@ -47,10 +50,12 @@ def create_app(test_config=None):
     admin.init_app(app)
 
     #blueprints
-    app.register_blueprint(landing_bp)
-    app.register_blueprint(auth_bp, url_prefix="/api/v1/auth")
-    app.register_blueprint(profile_bp, url_prefix="/api/v1/profile")
-    app.register_blueprint(admin_bp, url_prefix="/api/v1/admin")
+    app.register_blueprint(landing.landing_bp)
+    app.register_blueprint(validations.validations_bp, url_prefix='/validations')
     app.register_blueprint(db_admin_bp, url_prefix='/administer') #development only
+    #API BLUEPRINTS
+    app.register_blueprint(auth.auth_bp, url_prefix='/api/v1/auth')
+    app.register_blueprint(profile.profile_bp, url_prefix='/api/v1/profile')
+    app.register_blueprint(maintenance.admin_bp, url_prefix='/api/v1/maintenance')
 
     return app
