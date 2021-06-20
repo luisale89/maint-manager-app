@@ -10,7 +10,10 @@ from app.models.users import (
 )
 from app.utils.exceptions import APIException
 from app.utils.helpers import (
-    normalize_names, only_letters, resp_msg
+    normalize_names, resp_msg
+)
+from app.utils.validations import (
+    only_letters
 )
 
 profile_bp = Blueprint('profile_bp', __name__)

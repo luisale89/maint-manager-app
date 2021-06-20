@@ -1,6 +1,5 @@
 import os
 from flask import Flask, jsonify, request, render_template
-from app.blueprints import api_v1
 
 from app.blueprints.api_v1 import (
     auth, profile, maintenance
@@ -14,6 +13,10 @@ from app.blueprints.db_amin.db_admin import db_admin_bp #!development only
 
 from app.extensions import (
     assets, migrate, jwt, db, cors, admin
+)
+
+from app.utils.exceptions import (
+    APIException
 )
 
 def handle_not_found(e):
@@ -32,6 +35,9 @@ def handle_not_allowed(e):
     else:
         return render_template('landing/404.html'), 405 #!desarrollar template para 405
 
+def handle_API_Exception(error):
+    return jsonify(error.to_dict()), error.status_code
+
 def create_app(test_config=None):
     ''' Application-Factory Pattern '''
     app = Flask(__name__)
@@ -40,6 +46,7 @@ def create_app(test_config=None):
     
     app.register_error_handler(404, handle_not_found)
     app.register_error_handler(405, handle_not_allowed)
+    app.register_error_handler(APIException, handle_API_Exception)
         
     #extensions
     assets.init_app(app)

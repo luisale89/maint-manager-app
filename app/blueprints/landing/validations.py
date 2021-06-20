@@ -1,10 +1,10 @@
 
 from flask.helpers import url_for
-from app.utils.helpers import (
-    valid_email, valid_password
+from app.utils.validations import (
+    validate_email, validate_pw
 )
 from flask import (
-    Blueprint, render_template, request, redirect
+    Blueprint, render_template, request
 )
 from app.utils.token_factory import validate_url_token
 from app.extensions import db
@@ -25,14 +25,16 @@ def email_validation():
     email = str(request.args.get('email'))
     token = str(request.args.get('token'))
 
-    if not valid_email(email):
-        return render_template('landing/404.html')
+    # if not valid_email(email):
+    #     return render_template('landing/404.html')
 
     result = validate_url_token(token=token, salt=email_salt)
     if not result['valid']:
-        return render_template('landing/404.html')
+       return render_template('landing/404.html')
 
     identifier = result['id']
+    if identifier != email:
+        return render_template('landing/404.html')
     try:
         user = User.query.filter_by(email=identifier).first()
         user.email_confirm = True
@@ -58,14 +60,13 @@ def pw_reset():
         email = str(request.args.get('email'))
         token = str(request.args.get('token'))
 
-        if not valid_email(email):
-            return render_template('landing/404.html')
-
         result = validate_url_token(token=token, salt=pw_salt)
         if not result['valid']:
             return render_template('landing/404.html')
 
         identifier = result['id']
+        if identifier != email:
+            return render_template('landing/404.html')
 
         data = {
             "title": "Cambio de Contraseña", 
@@ -74,12 +75,6 @@ def pw_reset():
         }
 
         return render_template('validations/pw-update-form.html', meta=data)
-
-    pw = request.form.get('password')
-    re_pw = request.form.get('re-password')
-
-    if not valid_password(pw) or pw != re_pw:
-        return redirect(url_for('landing_bp.pw_reset'))
 
     data = {
         "title": "Cambio de Contraseña", 

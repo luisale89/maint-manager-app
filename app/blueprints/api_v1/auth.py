@@ -2,27 +2,33 @@ import uuid
 import os
 from datetime import datetime
 from flask import (
-    Blueprint, jsonify, request, render_template
+    Blueprint, jsonify, request
 )
+#extensions
+from app.extensions import (
+    jwt, db
+)
+#models
+from app.models.users import (
+    User, TokenBlacklist, Company, WorkRelation
+)
+#exceptions
 from sqlalchemy.exc import (
     IntegrityError, DataError
 )
+from app.utils.exceptions import APIException
+#jwt
 from werkzeug.security import check_password_hash
 from flask_jwt_extended import (
     create_access_token, jwt_required, 
     get_jwt_identity, decode_token
 )
-
-from app.models.users import (
-    User, TokenBlacklist, Company, WorkRelation
-)
-from app.extensions import (
-    jwt, db
-)
-from app.utils.exceptions import APIException
+#utils
 from app.utils.helpers import (
-    normalize_names, add_token_to_database,
-    valid_email, valid_password, only_letters, in_request, resp_msg
+    normalize_names, add_token_to_database, resp_msg, get_user
+)
+from app.utils.validations import (
+    validate_email, validate_pw, in_request, only_letters
 )
 from app.utils.email_service import (
     send_validation_mail, send_pwchange_mail
@@ -44,10 +50,6 @@ auth_bp = Blueprint('auth_bp', __name__)
 main_frontend_url = os.environ['MAIN_FRONTEND_URL']
 email_salt = os.environ['EMAIL_VALID_SALT']
 pw_salt = os.environ['PW_VALID_SALT']
-
-@auth_bp.errorhandler(APIException)
-def handle_invalid_usage(error):
-    return jsonify(error.to_dict()), error.status_code
 
 
 @auth_bp.route('/sign-up', methods=['POST']) #normal signup
@@ -81,19 +83,17 @@ def signup():
         raise APIException(resp_msg.missing_args(rq['missing']))
 
     email, password, fname, lname, company_name = str(body['email']), str(body['password']), str(body['fname']), str(body['lname']), str(body['company_name'])
+    #validations -> exceptions
+    validate_email(email)
+    validate_pw(password)
+    only_letters(fname, spaces=True)
+    only_letters(lname, spaces=True)
 
-    if not valid_email(email):
-        raise APIException(resp_msg.invalid_format('email', email))
+    q_user = get_user(email)
 
-    if not valid_password(password):
-        raise APIException(resp_msg.invalid_pw())
+    if q_user:
+        raise APIException("User {} already exists".format(q_user.email))
 
-    if not only_letters(fname, spaces=True):
-        raise APIException(resp_msg.invalid_format('fname', fname))
-
-    if not only_letters(lname, spaces=True):
-        raise APIException(resp_msg.invalid_format('lname', lname))
-        
     #?processing
     try:
         new_user = User(
@@ -150,12 +150,10 @@ def email_query():
         raise APIException(resp_msg.missing_args(rq['missing']))
 
     email = str(request.args.get('email'))
-
-    if not valid_email(email):
-        raise APIException(resp_msg.invalid_format('email', email))
+    validate_email(email)
 
     #?processing
-    user = User.query.filter_by(email=email).first()
+    user = get_user(email)
     
     #?response
     if user is None:
@@ -205,15 +203,13 @@ def login():
         raise APIException(resp_msg.missing_args(rq['missing']))
 
     email, pw, company_id = str(body['email']), str(body['password']), body['company_id']
-
-    if not valid_email(email):
-        raise APIException(resp_msg.invalid_format('email', email))
+    validate_email(email)
 
     if not isinstance(company_id, int):
         raise APIException(resp_msg.invalid_format('company_id', type(company_id).__name__ ,'integer')) 
 
     #?processing
-    user = User.query.filter_by(email=email).first()
+    user = get_user(email)
     if user is None:
         raise APIException(resp_msg.not_found('email'), status_code=404)
     if not check_password_hash(user.password_hash, pw):
@@ -307,12 +303,10 @@ def pw_reset():
         raise APIException(resp_msg.missing_args(rq['missing']))
     
     email = str(request.args.get('email'))
-
-    if not valid_email(email):
-        raise APIException(resp_msg.invalid_format('email', email))
+    validate_email(email)
 
     #?processing
-    user = User.query.filter_by(email=email).first()
+    user = get_user(email)
 
     #?response
     if user is None:
@@ -353,12 +347,10 @@ def email_validation():
         raise APIException(resp_msg.missing_args(rq['missing']))
     
     email = str(request.args.get('email'))
-
-    if not valid_email(email):
-        raise APIException(resp_msg.invalid_format('email', email))
+    validate_email(email)
 
     #?processing
-    user = User.query.filter_by(email=email).first()
+    user = get_user(email)
 
     #?response
     if user is None:
