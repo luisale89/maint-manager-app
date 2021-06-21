@@ -1,7 +1,6 @@
 from app.utils.exceptions import APIException
-from app.utils.helpers import resp_msg
+from app.utils.helpers import api_responses
 import re
-from flask import render_template
 
 def validate_email(email: str):
     """Valida si una cadena de caracteres tiene un formato de correo electronico válido
@@ -21,7 +20,7 @@ def validate_email(email: str):
     ereg = '^[\w]+[\._]?[\w]+[@]\w+[.]\w{2,3}$'
 
     if not re.search(ereg, email):
-        raise APIException(resp_msg.invalid_format('email', email))
+        raise APIException(api_responses.invalid_format('email', email))
     pass
 
 
@@ -39,13 +38,13 @@ def validate_pw(password: str, is_api:bool = True):
     preg = '^.*(?=.{8,})(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).*$'
     # if not re.search(preg, password):
     #     if is_api:
-    #         raise APIException(resp_msg.invalid_pw())
+    #         raise APIException(api_responses.invalid_pw())
     #     else:
     #         return True
     # pass
     if is_api:
         if not re.search(preg, password):
-            raise APIException(resp_msg.invalid_pw())
+            raise APIException(api_responses.invalid_pw())
         pass
     return bool(re.search(preg, password))
 
