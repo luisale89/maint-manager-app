@@ -47,10 +47,6 @@ def check_if_token_revoked(jwt_header, jwt_payload):
 
 auth_bp = Blueprint('auth_bp', __name__)
 
-main_frontend_url = os.environ['MAIN_FRONTEND_URL']
-email_salt = os.environ['EMAIL_VALID_SALT']
-pw_salt = os.environ['PW_VALID_SALT']
-
 
 @auth_bp.route('/sign-up', methods=['POST']) #normal signup
 def signup():
