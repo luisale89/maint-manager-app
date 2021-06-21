@@ -46,7 +46,7 @@ def get_profile():
     if user is None:
         raise APIException(api_responses.not_found('user'), status_code=404)
 
-    data = {'user': user.serialize(), 'w_relation': get_jwt()['w_relation'], 'identity': get_jwt()['sub']}
+    data = {'user': user.serialize(), 'identity': get_jwt()['sub']}
     return jsonify(data), 200
 
 

@@ -10,7 +10,7 @@ from app.extensions import (
 )
 #models
 from app.models.users import (
-    User, TokenBlacklist, Company, WorkRelation
+    User, TokenBlacklist
 )
 #exceptions
 from sqlalchemy.exc import (
@@ -59,8 +59,7 @@ def signup():
         "email": email,
         "password": psw,
         "fname": fname,
-        "lname": lname,
-        "company_name": string,
+        "lname": lname
     }
     respuesta: {
         "success":"created", 200
@@ -74,11 +73,11 @@ def signup():
     if body is None:
         raise APIException(api_responses.not_json_rq())
 
-    rq = in_request(body, ('email', 'password', 'fname', 'lname', 'company_name',))
+    rq = in_request(body, ('email', 'password', 'fname', 'lname',))
     if not rq['complete']:
         raise APIException(api_responses.missing_args(rq['missing']))
 
-    email, password, fname, lname, company_name = str(body['email']), str(body['password']), str(body['fname']), str(body['lname']), str(body['company_name'])
+    email, password, fname, lname = str(body['email']), str(body['password']), str(body['fname']), str(body['lname'])
     #validations -> exceptions
     validate_email(email)
     validate_pw(password)
@@ -101,18 +100,7 @@ def signup():
             email_confirm=False,
             status='active'
         )
-        new_company = Company(
-            public_id=str(uuid.uuid4()),
-            name=normalize_names(company_name, spaces=True)
-        )
-        relation = WorkRelation(
-            user=new_user,
-            company=new_company,
-            user_role="Admin"
-        )
         db.session.add(new_user)
-        db.session.add(new_company)
-        db.session.add(relation)
         db.session.commit()
     except (IntegrityError, DataError) as e:
         db.session.rollback()
@@ -157,10 +145,7 @@ def email_query():
             'email_exists': False,
             'msg': 'User not found in db'
         }), 200
-    return jsonify({
-        'email_exists': True,
-        'user': dict({'user_status': user.status}, **user.serialize_companies()),
-    }), 200
+    return jsonify({'user_exists': True, 'user_status': user.status}), 200
 
 
 @auth_bp.route('/login', methods=['POST']) #normal login
@@ -170,7 +155,6 @@ def login():
     requerido: {
         "email": email, <str>
         "password": password, <str>
-        "company_id": id <int>
     }
     respuesta: {
         "access_token": jwt_access_token,
@@ -181,7 +165,6 @@ def login():
             "profile_img": url,
             "home_address": dict,
             "personal_phone": string,
-            "company_profile": dict
         }
     }
     """
@@ -194,40 +177,29 @@ def login():
     if body is None:
         raise APIException(api_responses.not_json_rq())
 
-    rq = in_request(body, ('email', 'password', 'company_id',))
+    rq = in_request(body, ('email', 'password'))
     if not rq['complete']:
         raise APIException(api_responses.missing_args(rq['missing']))
 
-    email, pw, company_id = str(body['email']), str(body['password']), body['company_id']
+    email, pw = str(body['email']), str(body['password'])
     validate_email(email)
-
-    if not isinstance(company_id, int):
-        raise APIException(api_responses.invalid_format('company_id', type(company_id).__name__ ,'integer')) 
 
     #?processing
     user = get_user(email)
     if user is None:
         raise APIException(api_responses.not_found('email'), status_code=404)
     if not check_password_hash(user.password_hash, pw):
-        raise APIException("wrong password, try again", status_code=404)
+        raise APIException("wrong password, try again", status_code=401)
     if user.status is None or user.status != 'active':
-        raise APIException("user is not active")
-
-    w_relation = WorkRelation.query.filter_by(user=user, company_id=company_id).first()
-    if w_relation is None:
-        raise APIException("user is not related with company id: {}".format(company_id), status_code=404)
+        raise APIException("user is not active", status_code=405)
     
-    additional_claims = {"w_relation": w_relation.id}
+    # additional_claims = {"w_relation": w_relation.id}
 
-    access_token = create_access_token(identity=user.email, additional_claims=additional_claims)
+    access_token = create_access_token(identity=user.email) #additional_claims=additional_claims
     add_token_to_database(access_token)
 
     #?response
-    return jsonify({
-        "user": user.serialize(),
-        "company": w_relation.serialize_company(),
-        "access_token": access_token
-    }), 200
+    return jsonify({"user": user.serialize(), "access_token": access_token}), 200
 
 
 @auth_bp.route('/logout', methods=['GET']) #logout user
@@ -253,9 +225,9 @@ def logout():
         raise APIException(api_responses.not_json_rq())
 
     user_identity = get_jwt_identity()
-    close_all = request.args.get('close-all')
+    close = request.args.get('close')
 
-    if close_all:
+    if close == 'all':
         revoke_all_jwt(user_identity)
         return jsonify({"success": "user logged-out"}), 200
     else:
