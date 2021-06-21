@@ -25,7 +25,7 @@ from flask_jwt_extended import (
 )
 #utils
 from app.utils.helpers import (
-    normalize_names, add_token_to_database, resp_msg, get_user, revoke_all_jwt
+    normalize_names, add_token_to_database, api_responses, get_user, revoke_all_jwt
 )
 from app.utils.validations import (
     validate_email, validate_pw, in_request, only_letters
@@ -72,15 +72,15 @@ def signup():
     """
     #?validations
     if not request.is_json:
-        raise APIException(resp_msg.not_json_rq())
+        raise APIException(api_responses.not_json_rq())
     
     body = request.get_json(silent=True)
     if body is None:
-        raise APIException(resp_msg.not_json_rq())
+        raise APIException(api_responses.not_json_rq())
 
     rq = in_request(body, ('email', 'password', 'fname', 'lname', 'company_name',))
     if not rq['complete']:
-        raise APIException(resp_msg.missing_args(rq['missing']))
+        raise APIException(api_responses.missing_args(rq['missing']))
 
     email, password, fname, lname, company_name = str(body['email']), str(body['password']), str(body['fname']), str(body['lname']), str(body['company_name'])
     #validations -> exceptions
@@ -143,11 +143,11 @@ def email_query():
     """
     #?validations
     if not request.is_json:
-        raise APIException(resp_msg.not_json_rq())
+        raise APIException(api_responses.not_json_rq())
 
     rq = in_request(request.args, ('email',))
     if not rq['complete']:
-        raise APIException(resp_msg.missing_args(rq['missing']))
+        raise APIException(api_responses.missing_args(rq['missing']))
 
     email = str(request.args.get('email'))
     validate_email(email)
@@ -192,26 +192,26 @@ def login():
     
     #?validations
     if not request.is_json:
-        raise APIException(resp_msg.not_json_rq())
+        raise APIException(api_responses.not_json_rq())
 
     body = request.get_json(silent=True)
     if body is None:
-        raise APIException(resp_msg.not_json_rq())
+        raise APIException(api_responses.not_json_rq())
 
     rq = in_request(body, ('email', 'password', 'company_id',))
     if not rq['complete']:
-        raise APIException(resp_msg.missing_args(rq['missing']))
+        raise APIException(api_responses.missing_args(rq['missing']))
 
     email, pw, company_id = str(body['email']), str(body['password']), body['company_id']
     validate_email(email)
 
     if not isinstance(company_id, int):
-        raise APIException(resp_msg.invalid_format('company_id', type(company_id).__name__ ,'integer')) 
+        raise APIException(api_responses.invalid_format('company_id', type(company_id).__name__ ,'integer')) 
 
     #?processing
     user = get_user(email)
     if user is None:
-        raise APIException(resp_msg.not_found('email'), status_code=404)
+        raise APIException(api_responses.not_found('email'), status_code=404)
     if not check_password_hash(user.password_hash, pw):
         raise APIException("wrong password, try again", status_code=404)
     if user.status is None or user.status != 'active':
@@ -254,7 +254,7 @@ def logout():
         json: information about the transaction.
     """
     if not request.is_json:
-        raise APIException(resp_msg.not_json_rq())
+        raise APIException(api_responses.not_json_rq())
 
     user_identity = get_jwt_identity()
     close_all = request.args.get('close-all')
@@ -291,11 +291,11 @@ def pw_reset():
     
     '''
     if not request.is_json:
-        raise APIException(resp_msg.not_json_rq())
+        raise APIException(api_responses.not_json_rq())
     
     rq = in_request(request.args, ('email',))
     if not rq['complete']:
-        raise APIException(resp_msg.missing_args(rq['missing']))
+        raise APIException(api_responses.missing_args(rq['missing']))
     
     email = str(request.args.get('email'))
     validate_email(email)
@@ -305,7 +305,7 @@ def pw_reset():
 
     #?response
     if user is None:
-        raise APIException(resp_msg.not_found('user'), status_code=404)
+        raise APIException(api_responses.not_found('user'), status_code=404)
 
     mail = send_pwchange_mail({"name": user.fname, "email": user.email})
 
@@ -335,11 +335,11 @@ def email_validation():
     
     '''
     if not request.is_json:
-        raise APIException(resp_msg.not_json_rq())
+        raise APIException(api_responses.not_json_rq())
 
     rq = in_request(request.args, ('email',))
     if not rq['complete']:
-        raise APIException(resp_msg.missing_args(rq['missing']))
+        raise APIException(api_responses.missing_args(rq['missing']))
     
     email = str(request.args.get('email'))
     validate_email(email)
@@ -349,7 +349,7 @@ def email_validation():
 
     #?response
     if user is None:
-        raise APIException(resp_msg.not_found('user'), status_code=404)
+        raise APIException(api_responses.not_found('user'), status_code=404)
 
     mail = send_validation_mail({"name": user.fname, "email": user.email})
 

@@ -80,7 +80,7 @@ def normalize_names(name: str, spaces=False) -> str:
         return name.strip().title()
 
 
-class resp_msg():
+class api_responses():
     '''
     Clase que contiene todos los mensajes de respuesta al usuario que se repiten con 
     mucha frecuencia en la app.

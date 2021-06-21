@@ -7,8 +7,14 @@
 </head>
 <body>
     <h1>NOT FOUND PAGE</h1>
+    {%- with messages = get_flashed_messages() %}
+    {%- if messages %}
+    {%- for message in messages%}
+    <p class="not-found-msg">{{ message }}</p>
+    {%- endfor %}
+    {%- endif%}
+    {%- endwith %}
     <h2>go gome...</h2>
     <a href="{{ url_for('landing_bp.index') }}"> inicio </a>
-    <p>{{ html_msg|default("page not found", True) }}</p>
 </body>
 </html>

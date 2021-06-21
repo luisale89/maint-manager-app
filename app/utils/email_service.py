@@ -92,7 +92,7 @@ def send_validation_mail(user:dict=None) -> dict:
     if name is None or email is None:
         return {"status_code": 400, "msg": "bad request", "sent": False}
 
-    token = create_url_token(user_email=email, salt=email_salt)
+    token = create_url_token(identifier=email, salt=email_salt)
     url_params = "?email={}&token={}".format(email, token)
     validation_url = main_frontend_url + url_for('validations_bp.email_validation') + url_params
 
@@ -120,7 +120,7 @@ def send_pwchange_mail(user:dict=None) -> dict:
     if name is None or email is None:
         return {"status_code": 400, "msg": "bad request", "sent": False}
 
-    token = create_url_token(user_email=email, salt=pw_salt)
+    token = create_url_token(identifier=email, salt=pw_salt)
     url_params = "?email={}&token={}".format(email, token)
     validation_url = main_frontend_url + url_for('validations_bp.pw_reset') + url_params
 

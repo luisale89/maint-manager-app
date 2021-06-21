@@ -40,14 +40,8 @@
         {%- else %}
         <br />
         {%- endif %}
-        <input 
-            type="text"
-            id="url_token"
-            name="url_token"
-            style="display: none;"
-            value="{{- url_token }}"
-        /> <!-- Input that hodls the url token, for further validations in endpoint -->
-        <input type="submit" value="Submit" />
+        <button type="submit" class="submit-button">Enviar</button>
+        <!-- <input type="submit" value="submit"/> -->
     </form>
 </div>
 {%- endblock page_content %}

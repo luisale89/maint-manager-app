@@ -6,7 +6,7 @@ from app.blueprints.api_v1 import (
 )
 
 from app.blueprints.landing import (
-    landing, validation
+    landing, validations
 )
 
 from app.blueprints.db_amin.db_admin import db_admin_bp #!development only
@@ -58,7 +58,7 @@ def create_app(test_config=None):
 
     #blueprints
     app.register_blueprint(landing.landing_bp)
-    app.register_blueprint(validation.validation_bp, url_prefix='/validations')
+    app.register_blueprint(validations.validations_bp, url_prefix='/validations')
     app.register_blueprint(db_admin_bp, url_prefix='/administer') #development only
     #API BLUEPRINTS
     app.register_blueprint(auth.auth_bp, url_prefix='/api/v1/auth')
