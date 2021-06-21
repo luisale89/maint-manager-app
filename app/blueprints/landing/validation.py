@@ -5,7 +5,7 @@ from flask import (
 )
 #utils
 from app.utils.helpers import (
-    get_user
+    get_user, revoke_all_jwt
 )
 from app.utils.validations import (
     validate_pw
@@ -14,7 +14,6 @@ from app.utils.token_factory import validate_url_token
 #extensions
 from app.extensions import db
 #models
-from app.models.users import User
 from sqlalchemy.exc import (
     IntegrityError, DataError
 )
@@ -23,9 +22,9 @@ import os
 email_salt = os.environ['EMAIL_VALID_SALT']
 pw_salt = os.environ['PW_VALID_SALT']
 
-validations_bp = Blueprint('validations_bp', __name__)
+validation_bp = Blueprint('validation_bp', __name__)
 
-@validations_bp.route('/email-confirmation')
+@validation_bp.route('/email-confirmation')
 def email_validation():
     
     email = str(request.args.get('email'))
@@ -39,12 +38,12 @@ def email_validation():
     if identifier != email:
         return render_template('landing/404.html')
 
-    q_user = get_user(email)
-    if q_user is None:
+    user_q = get_user(email)
+    if user_q is None:
         return render_template('landing/404.html')
     
     try:
-        q_user.email_confirm = True
+        user_q.email_confirm = True
         db.session.commit()
     except (IntegrityError, DataError) as e:
         db.session.rollback()
@@ -59,7 +58,7 @@ def email_validation():
 
 
 # password reset endpoint
-@validations_bp.route('/pw-reset', methods=['GET', 'POST'])
+@validation_bp.route('/pw-reset', methods=['GET', 'POST'])
 def pw_reset():
 
     error = {}
@@ -75,7 +74,8 @@ def pw_reset():
         identifier = result['id']
         if identifier != email:
             return render_template('landing/404.html', html_msg = "parametros URL invalidos")
-
+        
+        revoke_all_jwt(identifier) #logout user in this point, it's safe
         context = {
             "title": "Cambio de Contraseña", 
             "description": "Formulario para el cambio de contraseña", 
@@ -84,7 +84,7 @@ def pw_reset():
             "error": error
         }
 
-        return render_template('validations/pw-update-form.html', **context)
+        return render_template('validations/pw-update-form.html', **context) #devuelve el formulario para el cambio de contrasena
 
     pw = request.form.get('password')
     repw = request.form.get('re-password')
@@ -99,14 +99,15 @@ def pw_reset():
     token_decode = validate_url_token(token=token, salt=pw_salt)
     if not token_decode['valid']:
         return render_template('landing/404.html', html_msg = "token no es valido o esta vencido")
-
-    q_user = get_user(token_decode['id']) #result['id] = user email
-    if q_user is None:
+    
+    email = token_decode['id']
+    user_q = get_user(email) #token_decode['id'] = user email
+    if user_q is None:
         return render_template('landing/404.html', html_msg = "Usuario no existe")
     
     if not error:
         try:
-            q_user.password = pw
+            user_q.password = pw
             db.session.commit()
         except (IntegrityError, DataError) as e:
             db.session.rollback()
@@ -121,8 +122,10 @@ def pw_reset():
     context = {
             "title": "Cambio de Contraseña", 
             "description": "Formulario para el cambio de contraseña", 
-            "email": q_user.email,
+            "email": user_q.email,
             "url_token": token,
             "error": error
     }
     return render_template('validations/pw-update-form.html', **context)
+
+#! Es necesario revisar "session" para mantener los parametros url entre solicitudes. REVISAR

@@ -22,6 +22,21 @@ def get_user(email):
     return user
 
 
+def revoke_all_jwt(user_identity:str):
+    '''
+    Revoke all tokens of an user. Usefull to logout everywhere.
+    params:
+    user_identity:str
+    '''
+    tokens = TokenBlacklist.query.filter_by(user_identity=user_identity, revoked=False).all()
+    for token in tokens:
+        token.revoked = True
+        token.revoked_date = datetime.utcnow()
+    db.session.commit()
+
+    pass
+
+
 def add_token_to_database(encoded_token):
     """
     Adds a new token to the database. It is not revoked when it is added.

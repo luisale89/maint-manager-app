@@ -5,12 +5,12 @@ from flask_jwt_extended import (
 )
 
 from app.extensions import db
-from app.models.users import (
-    User
+from sqlalchemy.exc import (
+    IntegrityError, DataError
 )
 from app.utils.exceptions import APIException
 from app.utils.helpers import (
-    normalize_names, resp_msg
+    normalize_names, resp_msg, get_user
 )
 from app.utils.validations import (
     only_letters
@@ -41,7 +41,8 @@ def get_profile():
             "user_since": utc-datetime,
         }
     """
-    user = User.query.filter_by(email=get_jwt_identity()).first() #get_jwt_indentity get the user id from jwt.
+    identity = get_jwt_identity()
+    user = get_user(identity) #get_jwt_indentity get the user id from jwt.
     if user is None:
         raise APIException(resp_msg.not_found('user'), status_code=404)
 
@@ -52,7 +53,8 @@ def get_profile():
 @profile_bp.route('/update', methods=['PUT'])
 @jwt_required()
 def update():
-    user = User.query.filter_by(email=get_jwt_identity()).first()
+    identity = get_jwt_identity()
+    user = get_user(identity)
     if user is None:
         raise APIException(resp_msg.not_found('user'), status_code=404)
 
@@ -65,17 +67,15 @@ def update():
 
     if 'fname' in body:
         fname = str(body['fname'])
-        if not only_letters(fname, spaces=True):
-            raise APIException(resp_msg.invalid_format('fname', fname))
+        only_letters(fname, spaces=True)
         if len(fname) > 60:
             raise APIException(resp_msg.invalid_format('fname', '> 60 char string'))
-
+        
         user.fname = normalize_names(fname, spaces=True)
 
     if 'lname' in body:
         lname = str(body['lname'])
-        if not only_letters(lname, spaces=True):
-            raise APIException(resp_msg.invalid_format('lname', lname))
+        only_letters(lname, spaces=True)
         if len(lname) > 60:
             raise APIException(resp_msg.invalid_format('lname', '> 60 char string'))
 
@@ -102,7 +102,11 @@ def update():
        
         user.personal_phone = personal_phone
 
-    db.session.commit()
+    try:
+        db.session.commit()
+    except (IntegrityError, DataError) as e:
+        db.session.rollback()
+        raise APIException(e.orig.args[0]) # integrityError or DataError info
     
     data = {'user': user.serialize()}
     return jsonify(data), 200

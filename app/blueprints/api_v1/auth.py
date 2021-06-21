@@ -25,7 +25,7 @@ from flask_jwt_extended import (
 )
 #utils
 from app.utils.helpers import (
-    normalize_names, add_token_to_database, resp_msg, get_user
+    normalize_names, add_token_to_database, resp_msg, get_user, revoke_all_jwt
 )
 from app.utils.validations import (
     validate_email, validate_pw, in_request, only_letters
@@ -257,15 +257,10 @@ def logout():
         raise APIException(resp_msg.not_json_rq())
 
     user_identity = get_jwt_identity()
-
-    close_all = bool(request.args.get('close-all'))
+    close_all = request.args.get('close-all')
 
     if close_all:
-        tokens = TokenBlacklist.query.filter_by(user_indentity=user_identity, revoked=False).all()
-        for token in tokens:
-            token.revoked = True
-            token.revoked_date = datetime.utcnow()
-        db.session.commit()
+        revoke_all_jwt(user_identity)
         return jsonify({"success": "user logged-out"}), 200
     else:
         token_info = decode_token(request.headers.get('authorization').replace("Bearer ", ""))

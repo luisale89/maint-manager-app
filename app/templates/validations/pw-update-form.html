@@ -36,7 +36,7 @@
             required
         />
         {%- if error.get('re_password') %}
-        <p class="pw-feedback" style="color: red;">{{ error.re_password }}</p>
+        <p class="repw-feedback" style="color: red;">{{ error.re_password }}</p>
         {%- else %}
         <br />
         {%- endif %}
@@ -46,7 +46,7 @@
             name="url_token"
             style="display: none;"
             value="{{- url_token }}"
-        /> <!-- Input that hodls the url token, for further validations -->
+        /> <!-- Input that hodls the url token, for further validations in endpoint -->
         <input type="submit" value="Submit" />
     </form>
 </div>
