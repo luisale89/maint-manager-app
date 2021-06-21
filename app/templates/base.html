@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <title>{{ meta.title }} | coldy</title> {# Bloque para incluir titulo a cada vista #}
+    <title>{{ title }} | coldy</title> {# Bloque para incluir titulo a cada vista #}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="{{ meta.description }}">
+    <meta name="description" content="{{ description }}">
     <meta name="robots" content="index, folow">
     {% assets 'main_css' %}<link rel="stylesheet" href="{{ ASSET_URL }}">{% endassets %}
     {%- block extra_styles %}{% endblock extra_styles %} {# Bloque para incluir estilos particulares para cada vista #}

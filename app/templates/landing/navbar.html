@@ -10,7 +10,7 @@
     <a href="/" class="logo"><div>Coldy_Logo</div></a>
     <div class="nav-zone">
         {% for href, id, name in navigation_bar -%}
-        <a {%- if id == active_page %} class="active" {%- endif %} href="{{ href }}">{{ name|e }}</a>
+        <a {%- if id == active_page %} class="active" {%- endif %} href="{{ href }}">{{ name }}</a>
         {%- endfor %}
     </div>
 </nav>

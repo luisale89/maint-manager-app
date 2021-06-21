@@ -37,12 +37,17 @@ def validate_pw(password: str, is_api:bool = True):
         raise TypeError("Invalid argument format, str is espected")
     #Regular expression that checks a secure password
     preg = '^.*(?=.{8,})(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).*$'
+    # if not re.search(preg, password):
+    #     if is_api:
+    #         raise APIException(resp_msg.invalid_pw())
+    #     else:
+    #         return True
+    # pass
     if is_api:
         if not re.search(preg, password):
             raise APIException(resp_msg.invalid_pw())
-    else:
-        return render_template('landing/404.html', html_msg="invalid password")
-    pass
+        pass
+    return bool(re.search(preg, password))
 
 
 def only_letters(string: str, spaces=False):

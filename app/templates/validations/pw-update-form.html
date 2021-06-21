@@ -3,7 +3,7 @@
 {% block page_content -%}
 <div id="pw-change-form">
     <h1>Cambia tu contraseña</h1>
-    <h3>Usuario: {{ user_email }}</h3>
+    <h3>Usuario: {{ email }}</h3>
     <h5>Tu contraseña debe tener al menos:</h5>
     <ul>
         <li>Un minimo de 8 caracteres</li>
@@ -11,11 +11,6 @@
         <li>Una letra minuscula</li>
         <li>Un numero</li>
     </ul>
-    <div 
-        id="form-feedback"
-        class="hide"
-        >
-        {{ form_fb|default("ok", True) }}
     </div>
     <form action="{{  url_for('validations_bp.pw_reset')  }}" method="POST">
         <label for="psw">Nueva Contraseña:</label>
@@ -27,7 +22,11 @@
             title="Debe contener al menos un numero, una letra mayúscula y minúscula, y al menos 8 caracteres" 
             required
         />
+        {%- if error.get('password') %}
+        <p class="pw-feedback" style="color: red;">{{ error.password }}</p>
+        {%- else %}
         <br />
+        {%- endif %}
         <label for="re-psw">Repite tu nueva contraseña:</label>
         <input 
             type="password" 
@@ -36,7 +35,11 @@
             pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}"
             required
         />
+        {%- if error.get('re_password') %}
+        <p class="pw-feedback" style="color: red;">{{ error.re_password }}</p>
+        {%- else %}
         <br />
+        {%- endif %}
         <input 
             type="text"
             id="url_token"
