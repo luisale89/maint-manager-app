@@ -2,6 +2,21 @@
 
 {% block page_content -%}
 <div id="pw-change-form">
+    <h1>Cambia tu contraseña</h1>
+    <h3>Usuario: {{ user_email }}</h3>
+    <h5>Tu contraseña debe tener al menos:</h5>
+    <ul>
+        <li>Un minimo de 8 caracteres</li>
+        <li>Una letra mayuscula</li>
+        <li>Una letra minuscula</li>
+        <li>Un numero</li>
+    </ul>
+    <div 
+        id="form-feedback"
+        class="hide"
+        >
+        {{ form_fb|default("ok", True) }}
+    </div>
     <form action="{{  url_for('validations_bp.pw_reset')  }}" method="POST">
         <label for="psw">Nueva Contraseña:</label>
         <input 
@@ -12,6 +27,7 @@
             title="Debe contener al menos un numero, una letra mayúscula y minúscula, y al menos 8 caracteres" 
             required
         />
+        <br />
         <label for="re-psw">Repite tu nueva contraseña:</label>
         <input 
             type="password" 
@@ -20,6 +36,14 @@
             pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}"
             required
         />
+        <br />
+        <input 
+            type="text"
+            id="url_token"
+            name="url_token"
+            style="display: none;"
+            value="{{- url_token }}"
+        /> <!-- Input that hodls the url token, for further validations -->
         <input type="submit" value="Submit" />
     </form>
 </div>

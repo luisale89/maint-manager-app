@@ -1,6 +1,7 @@
 from app.utils.exceptions import APIException
 from app.utils.helpers import resp_msg
 import re
+from flask import render_template
 
 def validate_email(email: str):
     """Valida si una cadena de caracteres tiene un formato de correo electronico válido
@@ -24,7 +25,7 @@ def validate_email(email: str):
     pass
 
 
-def validate_pw(password: str):
+def validate_pw(password: str, is_api:bool = True):
     """Verifica si una contraseña cumple con los parámetros minimos de seguridad
     definidos para esta aplicación.
     Args:
@@ -36,8 +37,11 @@ def validate_pw(password: str):
         raise TypeError("Invalid argument format, str is espected")
     #Regular expression that checks a secure password
     preg = '^.*(?=.{8,})(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).*$'
-    if not re.search(preg, password):
-        raise APIException(resp_msg.invalid_pw())
+    if is_api:
+        if not re.search(preg, password):
+            raise APIException(resp_msg.invalid_pw())
+    else:
+        return render_template('landing/404.html', html_msg="invalid password")
     pass
 
 

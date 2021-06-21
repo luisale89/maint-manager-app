@@ -1,13 +1,19 @@
 
-from flask.helpers import url_for
-from app.utils.validations import (
-    validate_email, validate_pw
-)
+from operator import is_
 from flask import (
     Blueprint, render_template, request
 )
+#utils
+from app.utils.helpers import (
+    get_user
+)
+from app.utils.validations import (
+    validate_pw
+)
 from app.utils.token_factory import validate_url_token
+#extensions
 from app.extensions import db
+#models
 from app.models.users import User
 from sqlalchemy.exc import (
     IntegrityError, DataError
@@ -35,9 +41,13 @@ def email_validation():
     identifier = result['id']
     if identifier != email:
         return render_template('landing/404.html')
+
+    q_user = get_user(email)
+    if q_user is None:
+        return render_template('landing/404.html')
+    
     try:
-        user = User.query.filter_by(email=identifier).first()
-        user.email_confirm = True
+        q_user.email_confirm = True
         db.session.commit()
     except (IntegrityError, DataError) as e:
         db.session.rollback()
@@ -62,11 +72,12 @@ def pw_reset():
 
         result = validate_url_token(token=token, salt=pw_salt)
         if not result['valid']:
-            return render_template('landing/404.html')
+            return render_template('landing/404.html', html_msg = "invalid token")
 
         identifier = result['id']
         if identifier != email:
-            return render_template('landing/404.html')
+            data = {"404_msg": "invalid email in url parameter"}
+            return render_template('landing/404.html', html_msg = "invalid url parameters")
 
         data = {
             "title": "Cambio de Contraseña", 
@@ -74,7 +85,35 @@ def pw_reset():
             "email": identifier
         }
 
-        return render_template('validations/pw-update-form.html', meta=data)
+        return render_template(
+            'validations/pw-update-form.html', 
+            meta=data, 
+            url_token = token, 
+            user_email = identifier
+        )
+
+    pw = request.form.get('password')
+    repw = request.form.get('re-password')
+    token = request.form.get('url_token')
+    validate_pw(pw, is_api = False)
+
+    if pw != repw:
+        return render_template('landing/404.html', html_msg = "passwords are different")
+
+    result = validate_url_token(token=token, salt=pw_salt)
+    if not result['valid']:
+        return render_template('landing/404.html', html_msg = "token not valid")
+
+    q_user = get_user(result['id']) #result['id] = user email
+    if q_user is None:
+        return render_template('landing/404.html', html_msg = "user not found")
+
+    try:
+        q_user.password = pw
+        db.session.commit()
+    except (IntegrityError, DataError) as e:
+        db.session.rollback()
+        return render_template('landing/404.html', html_msg = e.orig.args[0])
 
     data = {
         "title": "Cambio de Contraseña", 
