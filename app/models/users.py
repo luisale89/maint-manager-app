@@ -1,4 +1,5 @@
 
+from enum import unique
 from app.extensions import db
 from datetime import datetime
 
@@ -20,7 +21,9 @@ class User(db.Model):
     since = db.Column(db.DateTime, default=datetime.utcnow)
     email_confirm = db.Column(db.Boolean)
     status = db.Column(db.String(12))
+    country_id = db.Column(db.Integer, db.ForeignKey('country.id'))
     #relationships
+    country = db.relationship('Country', back_populates='users', uselist=False, lazy=False)
 
     def __repr__(self):
         return '<User %r>' % self.id
@@ -34,7 +37,8 @@ class User(db.Model):
             "home_address": self.home_address,
             "personal_phone": self.personal_phone,
             "user_since": self.since,
-            "user_status": self.status
+            "user_status": self.status, 
+            "country": self.country.name
         }
 
     def serialize_private(self):
@@ -49,6 +53,28 @@ class User(db.Model):
     @password.setter
     def password(self, password):
         self.password_hash = generate_password_hash(password, method='sha256')
+
+
+class Country(db.Model):
+    __tablename__ = 'country'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(128), nullable=False, unique=True)
+    code = db.Column(db.String(24), unique=True)
+    #relations
+    users = db.relationship('User', back_populates='country', lazy=False)
+
+    def __repr__(self) -> str:
+        return '<%r>' % self.name
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "code": self.code
+        }
+
+    def serialize_users(self):
+        return {"users": list(map(lambda x: x.id, self.users))} if self.users is not None else {"users": []}
 
 
 class TokenBlacklist(db.Model):
