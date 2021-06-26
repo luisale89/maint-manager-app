@@ -1,7 +1,7 @@
 
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import (
-    jwt_required, get_jwt_identity, get_jwt
+    jwt_required, get_jwt_identity
 )
 
 from app.extensions import db
@@ -46,7 +46,7 @@ def get_profile():
     if user is None:
         raise APIException(api_responses.not_found('user'), status_code=404)
 
-    data = {'user': user.serialize(), 'identity': get_jwt()['sub']}
+    data = {'user': user.serialize(), 'identity': identity}
     return jsonify(data), 200
 
 

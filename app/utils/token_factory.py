@@ -27,7 +27,7 @@ def create_url_token(identifier:str, salt:str) -> dict:
     return token
 
 
-def validate_url_token(token:str, salt:str, identifier:str=None) -> dict:
+def validate_url_token(token:str, salt:str, identifier:str=None, age:int=600) -> dict:
     '''
     Función para validar un url_token
 
@@ -35,6 +35,7 @@ def validate_url_token(token:str, salt:str, identifier:str=None) -> dict:
     - token: url_token que necesita ser validado
     - salt: identificador del parámetro que está siendo validado
     - identifier: identificador del usuario, generalmente es el correo electronico.
+    - age: Time in seconds in wich the token is valid. (10minutes by default)
 
     Return:
     - dict with validation results -> {"valid":bool, "id":token_id, "msg": str}
@@ -47,7 +48,7 @@ def validate_url_token(token:str, salt:str, identifier:str=None) -> dict:
         raise ValueError("token parameter is missing")
 
     try:
-        identity = serializer.loads(token, salt=salt, max_age=600) #token lives for 10 minutes
+        identity = serializer.loads(token, salt=salt, max_age=age)
     except BadData as e:
         return {"valid": False, "msg": e.message}
     
