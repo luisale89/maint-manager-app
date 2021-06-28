@@ -100,11 +100,11 @@ def signup():
     return jsonify({'success': 'new user created, complete email validation is required'}), 201
 
 
-@auth_bp.route('/email-query', methods=['GET']) #email validation sent in query params
+@auth_bp.route('/email-query', methods=['GET']) #email
 @json_required({"email":str}, query_params=True) #validate inputs
 def email_query():
     """
-    PUBLIC ENDPOINT
+    * PUBLIC ENDPOINT *
     requerido: query string with email: ?email=xx@xx.com
     respuesta: {
         email_exists: bool === False if email is not found in db
@@ -113,7 +113,9 @@ def email_query():
     """
 
     email = str(request.args.get('email'))
-    validate_email(email)
+    check_validations({
+        'email': validate_email(email)
+    })
 
     #?processing
     user = get_user(email)
@@ -123,7 +125,7 @@ def email_query():
         return jsonify({
             'email_exists': False,
             'msg': 'User not found in db'
-        }), 200
+        }), 404
     return jsonify({'user_exists': True, 'user_status': user.status}), 200
 
 
@@ -131,7 +133,7 @@ def email_query():
 @json_required({"email":str, "password":str})
 def login():
     """
-    PUBLIC ENDPOINT
+    * PUBLIC ENDPOINT *
     requerido: {
         "email": email, <str>
         "password": password, <str>
@@ -150,20 +152,27 @@ def login():
     """
     body = request.get_json(silent=True)
     email, pw = body['email'].lower(), body['password']
-    validate_email(email)
-    validate_pw(pw)
+
+    check_validations({
+        'email': validate_email(email),
+        'password': validate_pw(pw)
+    })
 
     #?processing
     user = get_user(email)
     if user is None:
         raise APIException(api_responses.not_found('email'), status_code=404)
     if not check_password_hash(user.password_hash, pw):
-        raise APIException("wrong password, try again", status_code=401)
+        raise APIException("wrong password", status_code=401, payload={"invalid":"password"})
     if user.status is None or user.status != 'active':
         raise APIException("user is not active", status_code=405)
+    if not user.email_confirm:
+        mail = send_validation_mail({"name": user.fname, "email": email})
+        if not mail['sent']:
+            raise APIException("fail on sending validation email to user, msg: '{}'".format(mail['msg']), status_code=500)
+        raise APIException("user email not validated, validation mail sent to user", status_code=401, payload={"invalid":"email validation required"})
     
     # additional_claims = {"w_relation": w_relation.id}
-
     access_token = create_access_token(identity=email) #additional_claims=additional_claims
     add_token_to_database(access_token)
 
@@ -175,7 +184,8 @@ def login():
 @json_required()
 @jwt_required()
 def logout():
-    """LOGOUT ENDPOINT - PRIVATE 
+    """
+    !PRIVATE ENDPOINT
     PERMITE AL USUARIO DESCONECTARSE DE LA APP, ESE ENDPOINT SE ENCARGA
     DE AGREGAR A LA BLOCKLIST EL O LOS TOKENS DEL USUARIO QUE ESTÁ
     HACIENDO LA PETICIÓN.
@@ -210,8 +220,8 @@ def logout():
 @auth_bp.route('/password-reset', methods=['GET']) #endpoint to restart password
 @json_required({"email":str}, query_params=True)
 def pw_reset():
-    '''
-    PASSWORD RESET ENDPOINT - PUBLIC
+    """
+    * PUBLIC ENDPOINT *
 
     Endpoint utiliza ItsDangerous y send_email para que el usuario pueda reestablecer
     su contraseña o validar el correo electrónico, dependiendo del endpoint.
@@ -226,7 +236,7 @@ def pw_reset():
     la aplicación envía un correo electrónico al usuario que solicita el cambio de contraseña
     y devuelve una respuesta json con el mensaje de exito.
     
-    '''    
+    """    
     email = str(request.args.get('email'))
     validate_email(email)
 
@@ -242,42 +252,4 @@ def pw_reset():
     if not mail['sent']:
         raise APIException("fail on sending email to user, msg: '{}'".format(mail['msg']), status_code=500)
     
-    return jsonify({"success": "password change validation sent to user"}), 200
-
-
-@auth_bp.route('/email-validation', methods=['GET'])
-@json_required({"email":str}, query_params=True)
-def email_validation():
-    '''
-    EMAIL VALIDATION ENDPOINT - PUBLIC
-
-    Endpoint utiliza ItsDangerous y send_email para que el usuario pueda 
-    validar su correo electrónico al momento de hacer un registro en la app.
-
-    Dos métodos son aceptados:
-
-    * GET
-
-    En este metodo, la aplicacion debe recibir el correo electrónico del usuario
-    dentro de los parametros URL ?'email'='value'
-
-    la aplicación envía un correo electrónico al usuario que solicita la validacion del correo
-    electronivo y devuelve una respuesta json con el mensaje de exito.
-    
-    '''
-    email = str(request.args.get('email'))
-    validate_email(email)
-
-    #?processing
-    user = get_user(email)
-
-    #?response
-    if user is None:
-        raise APIException(api_responses.not_found('user'), status_code=404)
-
-    mail = send_validation_mail({"name": user.fname, "email": user.email})
-
-    if not mail['sent']:
-        raise APIException("fail on sending email to user, msg: '{}'".format(mail['msg']), status_code=500)
-    
-    return jsonify({"success": "validation request sent to user"}), 200
+    return jsonify({"success": "password change mail sent to user"}), 200

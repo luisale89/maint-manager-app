@@ -6,8 +6,7 @@ def validate_email(email: str) -> dict:
     Args:
         email (str): email a validar
     Returns:
-        Exception APIException if email is not valid
-        pass if email is valid.
+        {'error':bool, 'msg':error message}
     """
     if not isinstance(email, str):
         raise TypeError("Invalid argument format, str is expected")
@@ -23,7 +22,7 @@ def validate_email(email: str) -> dict:
         # raise APIException(api_responses.invalid_format('email', email))
         return {"error":True, "msg": "invalid email format"}
     
-    return {"error": False}
+    return {"error": False, "msg": "ok"}
 
 
 def validate_pw(password: str) -> dict:
@@ -32,7 +31,7 @@ def validate_pw(password: str) -> dict:
     Args:
         password (str): contraseña a validar.
     Returns:
-        bool: resultado de la validación.
+        {'error':bool, 'msg':error message}
     """
     if not isinstance(password, str):
         raise TypeError("Invalid argument format, str is expected")
@@ -47,7 +46,7 @@ def validate_pw(password: str) -> dict:
     if not re.search(preg, password):
         return {"error": True, "msg": "password is insecure"}
 
-    return {"error": False}
+    return {"error": False, "msg": "ok"}
 
 
 def only_letters(string: str, spaces=False) -> dict:
@@ -59,7 +58,7 @@ def only_letters(string: str, spaces=False) -> dict:
         * spaces (bool, optional): Define si la cadena de caracteres lleva o no espacios en blanco. 
         Defaults to False.
     Returns:
-        *bool: Respuesta de la validación.
+        {'error':bool, 'msg':error message}
     """
     #regular expression that checks only letters string
     sreg = '^[a-zA-ZñáéíóúÑÁÉÍÓÚ]*$'
@@ -78,11 +77,23 @@ def only_letters(string: str, spaces=False) -> dict:
         if not re.search(sreg, string):
             # raise APIException("Only letter and no spaces is valid in str, {} was passed".format(string))
             return {"error": True, "msg": "String must be only letters and no spaces"}
-    return {"error": False}
+    return {"error": False, "msg": "ok"}
 
 
 def check_validations(valid:dict):
-    '''function para validar que no existe errores en el diccionario "valid"'''
+    '''function para validar que no existe errores en el diccionario "valid"
+    Args: 
+        *Dict en formato: 
+
+        {key: {'error':bool, 'msg':error message}} 
+        
+        donde key es la clave
+        del campo que se esta validando. p.ej: email, password, etc..
+
+    Returns:
+        pass if ok or raise APIException on any error
+    '''
+    
     error = []
     msg = {}
     if not isinstance(valid, dict):

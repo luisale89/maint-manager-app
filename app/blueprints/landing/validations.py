@@ -93,7 +93,8 @@ def pw_reset():
         flash(token_decode.get('msg', ''))
         return render_template('landing/404.html')
 
-    if not validate_pw(pw, is_api = False):
+    pw_valid = validate_pw(pw)
+    if pw_valid['error']:
         error['password'] = "formato de contraseña incorrecto"
 
     if pw != repw:
