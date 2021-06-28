@@ -12,14 +12,12 @@ def validate_email(email: str) -> dict:
         raise TypeError("Invalid argument format, str is expected")
 
     if len(email) > 320:
-        # raise APIException("invalid email lenght, {} length was passed".format(len(email)))
         return {"error": True, "msg": "invalid email length, max is 320 chars"}
 
     #Regular expression that checks a valid email
     ereg = '^[\w]+[\._]?[\w]+[@]\w+[.]\w{2,3}$'
 
     if not re.search(ereg, email):
-        # raise APIException(api_responses.invalid_format('email', email))
         return {"error":True, "msg": "invalid email format"}
     
     return {"error": False, "msg": "ok"}
@@ -37,12 +35,6 @@ def validate_pw(password: str) -> dict:
         raise TypeError("Invalid argument format, str is expected")
     #Regular expression that checks a secure password
     preg = '^.*(?=.{8,})(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).*$'
-    # if not re.search(preg, password):
-    #     if is_api:
-    #         raise APIException(api_responses.invalid_pw())
-    #     else:
-    #         return True
-    # pass
     if not re.search(preg, password):
         return {"error": True, "msg": "password is insecure"}
 
@@ -104,6 +96,6 @@ def check_validations(valid:dict):
             msg[r] = valid[r]['msg']
 
     if error:
-        raise APIException("invalid inputs format", payload={'invalid': error, 'msg': msg})
+        raise APIException("invalid inputs in request", payload={'invalid_inputs': error, 'msg': msg})
 
     pass

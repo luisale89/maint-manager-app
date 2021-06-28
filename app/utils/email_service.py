@@ -9,6 +9,7 @@ from flask import (
 from app.utils.token_factory import (
     create_url_token
 )
+from app.utils.exceptions import APIException
 
 # constantes para la configuracion del correo
 smtp_api_url = os.environ['SMTP_API_URL']
@@ -42,7 +43,6 @@ def smtp_api_request(data:dict, debug:dict) -> dict:
 
     except HTTPError:
         return {"msg": r.json(), "sent": False}
-
 
 def send_transactional_email(params:dict={}, recipients:list=None, sender:dict=None, subject:str=None) -> dict:
     '''
@@ -78,7 +78,7 @@ def send_transactional_email(params:dict={}, recipients:list=None, sender:dict=N
     return smtp_api_request(data)
 
 
-def send_validation_mail(user:dict=None) -> dict:
+def send_validation_mail(user:dict=None):
     '''
     función para enviar a través de una solicitud http a la api del servidor smtp un correo
     electrónico de validacion. Estos son los parámetros requeridos:
@@ -102,11 +102,14 @@ def send_validation_mail(user:dict=None) -> dict:
         "subject": "Valida tu correo electronico",
         "htmlContent": render_template("mail/user-validation.html", params = {"link":validation_url})
     }
+    rsp = smtp_api_request(data=data, debug={"link": validation_url})
+    if not rsp['sent']:
+        raise APIException("fail on sending validation email to user, msg: '{}'".format(rsp['msg']), status_code=503)
 
-    return smtp_api_request(data=data, debug={"link": validation_url})
+    pass
 
 
-def send_pwchange_mail(user:dict=None) -> dict:
+def send_pwchange_mail(user:dict=None):
     '''
     función para enviar a través de una solicitud http a la api del servidor smtp un correo
     electrónico de validacion. Estos son los parámetros requeridos:
@@ -131,4 +134,8 @@ def send_pwchange_mail(user:dict=None) -> dict:
         "htmlContent": render_template("mail/password-reset.html", params = {"link":validation_url}),
     }
 
-    return smtp_api_request(data=data, debug={"link":validation_url})
+    rsp = smtp_api_request(data=data, debug={"link":validation_url})
+    if not rsp['sent']:
+        raise APIException("fail on sending validation email to user, msg: '{}'".format(rsp['msg']), status_code=503)
+
+    pass

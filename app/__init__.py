@@ -88,18 +88,18 @@ def check_if_token_revoked(jwt_header, jwt_payload):
 def expired_token_msg(jwt_header, jwt_payload):
     return jsonify({
         "error": "token has been revoked or has expired",
-    }), 401
+    }), 403
 
 
 @jwt.invalid_token_loader
 def invalid_token_msg(error):
     return jsonify({
         "error": "invalid token in request, {}".format(error),
-    }), 401
+    }), 400
 
 
 @jwt.unauthorized_loader
 def missing_token_msg(error):
     return jsonify({
         "error": "Missing token in request, {}".format(error)
-    }), 401
+    }), 400

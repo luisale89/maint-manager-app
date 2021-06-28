@@ -25,7 +25,7 @@ from flask_jwt_extended import (
 )
 #utils
 from app.utils.helpers import (
-    normalize_names, add_token_to_database, api_responses, get_user, revoke_all_jwt
+    normalize_names, add_token_to_database, get_user, revoke_all_jwt, JSONResponse
 )
 from app.utils.validations import (
     validate_email, validate_pw, only_letters, check_validations
@@ -58,6 +58,13 @@ def signup():
     respuesta: {
         "success":"created", 200
     }
+
+    raised status codes {
+        inputs error: 400
+        user already exists: 409
+        smtp service error: 503
+        error in database session: 422
+    }
     """
 
     body = request.get_json(silent=True)
@@ -72,7 +79,9 @@ def signup():
     q_user = get_user(email)
 
     if q_user:
-        raise APIException("User {} already exists".format(q_user.email))
+        raise APIException("User {} already exists".format(q_user.email), status_code=409)
+
+    send_validation_mail({"name": fname, "email": email}) #503 error raised in funct definition
 
     #?processing
     try:
@@ -89,15 +98,11 @@ def signup():
         db.session.commit()
     except (IntegrityError, DataError) as e:
         db.session.rollback()
-        raise APIException(e.orig.args[0]) # integrityError or DataError info
-
-    mail = send_validation_mail({"name": fname, "email": email})
-
-    if not mail['sent']:
-        raise APIException("fail on sending validation email to user, msg: '{}'".format(mail['msg']), status_code=500)
+        raise APIException(e.orig.args[0], status_code=422) # integrityError or DataError info
 
     #?response
-    return jsonify({'success': 'new user created, complete email validation is required'}), 201
+    rsp = JSONResponse(message="New user created, email validation required")
+    return jsonify(rsp.serialize()), 201
 
 
 @auth_bp.route('/email-query', methods=['GET']) #email
@@ -109,6 +114,11 @@ def email_query():
     respuesta: {
         email_exists: bool === False if email is not found in db
         user: dict, => user info, if email exists
+    }
+    raised status codes {
+        inputs error: 400,
+        user not found: 404,
+        user exists in app: 200
     }
     """
 
@@ -122,11 +132,12 @@ def email_query():
     
     #?response
     if user is None:
-        return jsonify({
-            'email_exists': False,
-            'msg': 'User not found in db'
-        }), 404
-    return jsonify({'user_exists': True, 'user_status': user.status}), 200
+        raise APIException(
+            "user not found in database", 
+            status_code=404,
+        )
+    rsp = JSONResponse(message="user exists in database")
+    return jsonify(rsp.serialize()), 200
 
 
 @auth_bp.route('/login', methods=['POST']) #normal login
@@ -149,11 +160,19 @@ def login():
             "personal_phone": string,
         }
     }
+    raised status codes {
+        invalid inputs: 400
+        user not found: 404,
+        invalid password: 403,
+        user inactive: 402,
+        user email not validated: 401
+        smtp service error: 503,
+    }
     """
     body = request.get_json(silent=True)
     email, pw = body['email'].lower(), body['password']
 
-    check_validations({
+    check_validations({ #raise a 400 error
         'email': validate_email(email),
         'password': validate_pw(pw)
     })
@@ -161,23 +180,32 @@ def login():
     #?processing
     user = get_user(email)
     if user is None:
-        raise APIException(api_responses.not_found('email'), status_code=404)
+        raise APIException("user email not found in database", status_code=404)
+
     if not check_password_hash(user.password_hash, pw):
-        raise APIException("wrong password", status_code=401, payload={"invalid":"password"})
+        raise APIException("wrong password", status_code=403)
+
     if user.status is None or user.status != 'active':
-        raise APIException("user is not active", status_code=405)
+        raise APIException("user is not active", status_code=402)
+
     if not user.email_confirm:
-        mail = send_validation_mail({"name": user.fname, "email": email})
-        if not mail['sent']:
-            raise APIException("fail on sending validation email to user, msg: '{}'".format(mail['msg']), status_code=500)
-        raise APIException("user email not validated, validation mail sent to user", status_code=401, payload={"invalid":"email validation required"})
+        send_validation_mail({"name": user.fname, "email": email}) #error raised in funct definition
+
+        raise APIException("user's email not validated", status_code=401)
     
     # additional_claims = {"w_relation": w_relation.id}
     access_token = create_access_token(identity=email) #additional_claims=additional_claims
     add_token_to_database(access_token)
 
     #?response
-    return jsonify({"user": user.serialize(), "access_token": access_token}), 200
+    rsp = JSONResponse(
+        message="user logged in",
+        payload={
+            "user": user.serialize(),
+            "access_token": access_token
+        }
+    )
+    return jsonify(rsp.serialize()), 200
 
 
 @auth_bp.route('/logout', methods=['GET']) #logout user
@@ -185,7 +213,7 @@ def login():
 @jwt_required()
 def logout():
     """
-    !PRIVATE ENDPOINT
+    ! PRIVATE ENDPOINT
     PERMITE AL USUARIO DESCONECTARSE DE LA APP, ESE ENDPOINT SE ENCARGA
     DE AGREGAR A LA BLOCKLIST EL O LOS TOKENS DEL USUARIO QUE ESTÁ
     HACIENDO LA PETICIÓN.
@@ -207,14 +235,16 @@ def logout():
 
     if close == 'all':
         revoke_all_jwt(user_identity)
-        return jsonify({"success": "user logged-out"}), 200
+        rsp = JSONResponse("user logged-out of all active sessions")
+        return jsonify(rsp.serialize()), 200
     else:
         token_info = decode_token(request.headers.get('authorization').replace("Bearer ", ""))
         db_token = TokenBlacklist.query.filter_by(jti=token_info['jti']).first()
         db_token.revoked = True
         db_token.revoked_date = datetime.utcnow()
         db.session.commit()
-        return jsonify({"success": "user logged out"}), 200
+        rsp = JSONResponse("user logged-out of current session")
+        return jsonify(rsp.serialize()), 200
 
 
 @auth_bp.route('/password-reset', methods=['GET']) #endpoint to restart password
@@ -224,18 +254,19 @@ def pw_reset():
     * PUBLIC ENDPOINT *
 
     Endpoint utiliza ItsDangerous y send_email para que el usuario pueda reestablecer
-    su contraseña o validar el correo electrónico, dependiendo del endpoint.
+    su contraseña.
 
-    métodos aceptados:
-
-    * GET
-
-    En este metodo, la aplicacion debe recibir el correo electrónico del usuario
+    la aplicacion debe recibir el correo electrónico del usuario
     dentro de los parametros URL ?'email'='value'
 
     la aplicación envía un correo electrónico al usuario que solicita el cambio de contraseña
     y devuelve una respuesta json con el mensaje de exito.
     
+    raised errors {
+        inputs error: 400
+        user not found in database: 404,
+        smtp service error: 503, (raised in function definition)
+    }
     """    
     email = str(request.args.get('email'))
     validate_email(email)
@@ -245,11 +276,8 @@ def pw_reset():
 
     #?response
     if user is None:
-        raise APIException(api_responses.not_found('user'), status_code=404)
+        raise APIException("user not found in database", status_code=404)
 
-    mail = send_pwchange_mail({"name": user.fname, "email": user.email})
-
-    if not mail['sent']:
-        raise APIException("fail on sending email to user, msg: '{}'".format(mail['msg']), status_code=500)
-    
-    return jsonify({"success": "password change mail sent to user"}), 200
+    send_pwchange_mail({"name": user.fname, "email": user.email})
+    rsp = JSONResponse("validation email sent to user")
+    return jsonify(rsp.serialize()), 200

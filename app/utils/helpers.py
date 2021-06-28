@@ -5,6 +5,7 @@ from app.extensions import db
 from app.models.users import (
     TokenBlacklist, User
 )
+from flask import jsonify
 
 def _epoch_utc_to_datetime(epoch_utc):
     """
@@ -80,44 +81,17 @@ def normalize_names(name: str, spaces=False) -> str:
         return name.strip().title()
 
 
-class api_responses():
-    '''
-    Clase que contiene todos los mensajes de respuesta al usuario que se repiten con 
-    mucha frecuencia en la app.
-    '''
-    def invalid_format(name:str='input', value:str=None, expected:str=None) -> str:
-        '''
-        Función que devuelve un mensaje de formato invalido de un input enviado a la app.
+class JSONResponse():
 
-        Args:
-        * name: nombre del input, default='input'
-        * value: valor enviado por el usuario, default=None
-        * expected: valor esperado por la app, default=None
+    def __init__(self, message, app_status="success", payload=None):
+        self.app_status = app_status
+        self.data = payload
+        self.message = message
 
-        Return:
-        * Devuelve string con mensaje de respuesta.
-
-        '''
-        str1 = "invalid {} format in request".format(name)
-        str2 = ""
-        str3 = ""
-        if value is not None:
-            str2 = ", {} was given".format(value)
-        if expected is not None:
-            str3 = ", {} is expected".format(expected)
-        
-        return str1+str2+str3  
-    
-    def invalid_pw() -> str:
-        return "password does not comply with security format"
-
-    def not_found(value="input") -> str:
-        return "{} not found in app".format(value)
-
-    def missing_args(args) -> str:
-        return "missing args in request: %r" %args
-
-    def not_json_rq() -> str:
-        return "invalid json request"
-
-
+    def serialize(self):
+        rv = {
+            "status": self.app_status,
+            "data": dict(self.data or ()),
+            "message": self.message
+        }
+        return rv

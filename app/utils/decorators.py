@@ -38,7 +38,7 @@ def json_required(required:dict=None, query_params:bool=False):
                     missing = [r for r in required.keys() if r not in _qparams]
                 else:             
                     if _json is None:
-                        raise APIException("missing arguments in request body")
+                        raise APIException("missing all arguments in request body")
                     missing = [r for r in required.keys() if r not in _json]
 
                 if missing:
