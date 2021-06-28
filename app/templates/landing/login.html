@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block page_content -%}
+<div id="login-form">
+    <h1>Ingreso de usuario</h1>
+    </div>
+    <form action="{{  url_for('landing_bp.login')  }}" method="POST">
+        <label for="email">Correo Electronico:</label>
+        <input 
+            type="email" 
+            id="email" 
+            name="email" 
+            pattern="^[\w]+[\._]?[\w]+[@]\w+[.]\w{2,3}$" 
+            title="Formato de correo electronico incorrecto" 
+            required
+        />
+        {%- if error.get('email') %}
+        <p class="pw-feedback" style="color: red;">{{ error.email }}</p>
+        {%- else %}
+        <br />
+        {%- endif %}
+        <label for="password">Contraseña:</label>
+        <input 
+            type="password" 
+            id="password" 
+            name="password"
+            pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}"
+            title="Debe contener al menos un numero, una letra mayúscula y minúscula, y al menos 8 caracteres" 
+            required
+        />
+        {%- if error.get('password') %}
+        <p class="repw-feedback" style="color: red;">{{ error.password }}</p>
+        {%- else %}
+        <br />
+        {%- endif %}
+        <h5>Tu contraseña debe tener al menos:</h5>
+        <ul>
+            <li>Un minimo de 8 caracteres</li>
+            <li>Una letra mayuscula</li>
+            <li>Una letra minuscula</li>
+            <li>Un numero</li>
+        </ul>
+        <button type="submit" class="submit-button">Enviar</button>
+        <!-- <input type="submit" value="submit"/> -->
+    </form>
+</div>
+{%- endblock page_content %}

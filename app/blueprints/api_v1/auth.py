@@ -2,7 +2,7 @@ import uuid
 import os
 from datetime import datetime
 from flask import (
-    Blueprint, jsonify, request
+    Blueprint, json, jsonify, request, abort
 )
 #extensions
 from app.extensions import (
@@ -28,27 +28,21 @@ from app.utils.helpers import (
     normalize_names, add_token_to_database, api_responses, get_user, revoke_all_jwt
 )
 from app.utils.validations import (
-    validate_email, validate_pw, in_request, only_letters
+    validate_email, validate_pw, only_letters, check_validations
 )
 from app.utils.email_service import (
     send_validation_mail, send_pwchange_mail
 )
-
-
-@jwt.token_in_blocklist_loader
-def check_if_token_revoked(jwt_header, jwt_payload):
-    jti = jwt_payload['jti']
-    token = TokenBlacklist.query.filter_by(jti=jti).first()
-    if token is None:
-        return True
-    else:
-        return token.revoked
+from app.utils.decorators import (
+    json_required
+)
 
 
 auth_bp = Blueprint('auth_bp', __name__)
 
 
 @auth_bp.route('/sign-up', methods=['POST']) #normal signup
+@json_required({"email":str, "password":str, "fname":str, "lname":str})
 def signup():
     """
     * PUBLIC ENDPOINT *
@@ -56,33 +50,24 @@ def signup():
     crear una compañía, es decir, todo usuario que complete el formulario de sign-up será un 
     administrador de su propia compañía.
     requerido: {
-        "email": email,
-        "password": psw,
-        "fname": fname,
-        "lname": lname
+        "email": str,
+        "password": str,
+        "fname": str,
+        "lname": str
     }
     respuesta: {
         "success":"created", 200
     }
     """
-    #?validations
-    if not request.is_json:
-        raise APIException(api_responses.not_json_rq())
-    
+
     body = request.get_json(silent=True)
-    if body is None:
-        raise APIException(api_responses.not_json_rq())
-
-    rq = in_request(body, ('email', 'password', 'fname', 'lname',))
-    if not rq['complete']:
-        raise APIException(api_responses.missing_args(rq['missing']))
-
-    email, password, fname, lname = str(body['email']), str(body['password']), str(body['fname']), str(body['lname'])
-    #validations -> exceptions
-    validate_email(email)
-    validate_pw(password)
-    only_letters(fname, spaces=True)
-    only_letters(lname, spaces=True)
+    email, password, fname, lname = body['email'].lower(), body['password'], body['fname'], body['lname']
+    check_validations({
+        'email': validate_email(email),
+        'password': validate_pw(password),
+        'fname': only_letters(fname, spaces=True),
+        'lname': only_letters(lname, spaces=True)
+    })
 
     q_user = get_user(email)
 
@@ -116,6 +101,7 @@ def signup():
 
 
 @auth_bp.route('/email-query', methods=['GET']) #email validation sent in query params
+@json_required({"email":str}, query_params=True) #validate inputs
 def email_query():
     """
     PUBLIC ENDPOINT
@@ -125,13 +111,6 @@ def email_query():
         user: dict, => user info, if email exists
     }
     """
-    #?validations
-    if not request.is_json:
-        raise APIException(api_responses.not_json_rq())
-
-    rq = in_request(request.args, ('email',))
-    if not rq['complete']:
-        raise APIException(api_responses.missing_args(rq['missing']))
 
     email = str(request.args.get('email'))
     validate_email(email)
@@ -149,6 +128,7 @@ def email_query():
 
 
 @auth_bp.route('/login', methods=['POST']) #normal login
+@json_required({"email":str, "password":str})
 def login():
     """
     PUBLIC ENDPOINT
@@ -168,21 +148,10 @@ def login():
         }
     }
     """
-    
-    #?validations
-    if not request.is_json:
-        raise APIException(api_responses.not_json_rq())
-
     body = request.get_json(silent=True)
-    if body is None:
-        raise APIException(api_responses.not_json_rq())
-
-    rq = in_request(body, ('email', 'password'))
-    if not rq['complete']:
-        raise APIException(api_responses.missing_args(rq['missing']))
-
-    email, pw = str(body['email']), str(body['password'])
+    email, pw = body['email'].lower(), body['password']
     validate_email(email)
+    validate_pw(pw)
 
     #?processing
     user = get_user(email)
@@ -195,7 +164,7 @@ def login():
     
     # additional_claims = {"w_relation": w_relation.id}
 
-    access_token = create_access_token(identity=user.email) #additional_claims=additional_claims
+    access_token = create_access_token(identity=email) #additional_claims=additional_claims
     add_token_to_database(access_token)
 
     #?response
@@ -203,6 +172,7 @@ def login():
 
 
 @auth_bp.route('/logout', methods=['GET']) #logout user
+@json_required()
 @jwt_required()
 def logout():
     """LOGOUT ENDPOINT - PRIVATE 
@@ -221,8 +191,6 @@ def logout():
     Returns:
         json: information about the transaction.
     """
-    if not request.is_json:
-        raise APIException(api_responses.not_json_rq())
 
     user_identity = get_jwt_identity()
     close = request.args.get('close')
@@ -240,6 +208,7 @@ def logout():
 
 
 @auth_bp.route('/password-reset', methods=['GET']) #endpoint to restart password
+@json_required({"email":str}, query_params=True)
 def pw_reset():
     '''
     PASSWORD RESET ENDPOINT - PUBLIC
@@ -257,14 +226,7 @@ def pw_reset():
     la aplicación envía un correo electrónico al usuario que solicita el cambio de contraseña
     y devuelve una respuesta json con el mensaje de exito.
     
-    '''
-    if not request.is_json:
-        raise APIException(api_responses.not_json_rq())
-    
-    rq = in_request(request.args, ('email',))
-    if not rq['complete']:
-        raise APIException(api_responses.missing_args(rq['missing']))
-    
+    '''    
     email = str(request.args.get('email'))
     validate_email(email)
 
@@ -284,6 +246,7 @@ def pw_reset():
 
 
 @auth_bp.route('/email-validation', methods=['GET'])
+@json_required({"email":str}, query_params=True)
 def email_validation():
     '''
     EMAIL VALIDATION ENDPOINT - PUBLIC
@@ -302,13 +265,6 @@ def email_validation():
     electronivo y devuelve una respuesta json con el mensaje de exito.
     
     '''
-    if not request.is_json:
-        raise APIException(api_responses.not_json_rq())
-
-    rq = in_request(request.args, ('email',))
-    if not rq['complete']:
-        raise APIException(api_responses.missing_args(rq['missing']))
-    
     email = str(request.args.get('email'))
     validate_email(email)
 

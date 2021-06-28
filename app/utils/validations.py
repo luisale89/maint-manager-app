@@ -1,8 +1,7 @@
-from app.utils.exceptions import APIException
-from app.utils.helpers import api_responses
 import re
+from app.utils.exceptions import APIException
 
-def validate_email(email: str):
+def validate_email(email: str) -> dict:
     """Valida si una cadena de caracteres tiene un formato de correo electronico válido
     Args:
         email (str): email a validar
@@ -11,20 +10,23 @@ def validate_email(email: str):
         pass if email is valid.
     """
     if not isinstance(email, str):
-        raise TypeError("Invalid argument format, str is espected")
+        raise TypeError("Invalid argument format, str is expected")
 
     if len(email) > 320:
-        raise APIException("invalid email lenght, {} length was passed".format(len(email)))
+        # raise APIException("invalid email lenght, {} length was passed".format(len(email)))
+        return {"error": True, "msg": "invalid email length, max is 320 chars"}
 
     #Regular expression that checks a valid email
     ereg = '^[\w]+[\._]?[\w]+[@]\w+[.]\w{2,3}$'
 
     if not re.search(ereg, email):
-        raise APIException(api_responses.invalid_format('email', email))
-    pass
+        # raise APIException(api_responses.invalid_format('email', email))
+        return {"error":True, "msg": "invalid email format"}
+    
+    return {"error": False}
 
 
-def validate_pw(password: str, is_api:bool = True):
+def validate_pw(password: str) -> dict:
     """Verifica si una contraseña cumple con los parámetros minimos de seguridad
     definidos para esta aplicación.
     Args:
@@ -33,7 +35,7 @@ def validate_pw(password: str, is_api:bool = True):
         bool: resultado de la validación.
     """
     if not isinstance(password, str):
-        raise TypeError("Invalid argument format, str is espected")
+        raise TypeError("Invalid argument format, str is expected")
     #Regular expression that checks a secure password
     preg = '^.*(?=.{8,})(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).*$'
     # if not re.search(preg, password):
@@ -42,14 +44,13 @@ def validate_pw(password: str, is_api:bool = True):
     #     else:
     #         return True
     # pass
-    if is_api:
-        if not re.search(preg, password):
-            raise APIException(api_responses.invalid_pw())
-        pass
-    return bool(re.search(preg, password))
+    if not re.search(preg, password):
+        return {"error": True, "msg": "password is insecure"}
+
+    return {"error": False}
 
 
-def only_letters(string: str, spaces=False):
+def only_letters(string: str, spaces=False) -> dict:
     """Funcion que valida si un String contiene solo letras
     Se incluyen letras con acentos, ñ. Se excluyen caracteres especiales
     y numeros.
@@ -65,44 +66,33 @@ def only_letters(string: str, spaces=False):
     #regular expression that check letters and spaces in a string
     sregs = '^[a-zA-Z ñáéíóúÑÁÉÍÓÚ]*$'
     if not isinstance(string, str):
-        raise TypeError("Invalid argument format, str is espected")
+        raise TypeError("Invalid argument format, str is expected")
     if not isinstance(spaces, bool):
-        raise TypeError("Invalid argument format, bool is espected")
+        raise TypeError("Invalid argument format, bool is expected")
     
     if spaces:
         if not re.search(sregs, string):
-            raise APIException("Only letter is valid in str, {} was passed".format(string))
+            # raise APIException("Only letter is valid in str, {} was passed".format(string))
+            return {"error": True, "msg": "String must be only letters"}
     else: 
         if not re.search(sreg, string):
-            raise APIException("Only letter and no spaces is valid in str, {} was passed".format(string))
+            # raise APIException("Only letter and no spaces is valid in str, {} was passed".format(string))
+            return {"error": True, "msg": "String must be only letters and no spaces"}
+    return {"error": False}
+
+
+def check_validations(valid:dict):
+    '''function para validar que no existe errores en el diccionario "valid"'''
+    error = []
+    msg = {}
+    if not isinstance(valid, dict):
+        raise TypeError("Invalid argument format, dict is expected")
+    for r in valid.keys():
+        if valid[r]['error']: 
+            error.append(r)
+            msg[r] = valid[r]['msg']
+
+    if error:
+        raise APIException("invalid inputs format", payload={'invalid': error, 'msg': msg})
 
     pass
-
-
-def in_request(request: dict, contains: tuple) -> dict:
-    '''
-    Función para validar que un request contiene todos los 
-    elementos necesarios para completar la solicitud del usuario
-
-    Args:
-        * request: dict que contiene todos los elementos enviados por el usuario al endpoint.
-        * contains: tuple que contiene el listado de elmentos que debe existir dentro de request
-        para poder completar correctamente la solicitud del usuario.
-
-    Returns:
-        dict que contiene la siguiente información:
-        resp: {'complete': bool, missing: list} => list == lista elementos faltantes en request
-
-    '''
-    missing = list()
-    complete = False
-    if not isinstance(request, dict) or not isinstance(contains, tuple):
-        raise TypeError("invalid arguments passed")
-    
-    for item in contains:
-        if request.get(item) is None:
-            missing.append(item)
-    if len(missing) == 0:
-        complete = True
-    
-    return {'complete': complete, 'missing': missing}

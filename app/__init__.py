@@ -1,5 +1,5 @@
 import os
-from flask import Flask, jsonify, request, render_template
+from flask import Flask, json, jsonify, request, render_template, flash
 
 from app.blueprints.api_v1 import (
     auth, profile, maintenance
@@ -19,20 +19,25 @@ from app.utils.exceptions import (
     APIException
 )
 
+from app.models.users import (TokenBlacklist)
+
+
 def handle_not_found(e):
     ''' Función que permite devolver 404 en json para solicitud de 
     API y html para solicitud desde un navegador web '''
-    if request.path.startswith('/api'):
+    if request.path.startswith("/api"):
         return jsonify(error=str(e)), 404
     else:
+        flash(str(e))
         return render_template('landing/404.html'), 404
 
 def handle_not_allowed(e):
     ''' Función que permite devolver 405 en json para solicitud de 
     API y html para solicitud desde un navegador web '''
-    if request.path.startswith('/api'):
+    if request.path.startswith("/api"):
         return jsonify(error=str(e)), 405
     else:
+        flash(str(e))
         return render_template('landing/404.html'), 405 #!desarrollar template para 405
 
 def handle_API_Exception(error):
@@ -66,3 +71,35 @@ def create_app(test_config=None):
     app.register_blueprint(maintenance.admin_bp, url_prefix='/api/v1/maintenance')
 
     return app
+
+#callbacks
+@jwt.token_in_blocklist_loader
+def check_if_token_revoked(jwt_header, jwt_payload):
+    jti = jwt_payload['jti']
+    token = TokenBlacklist.query.filter_by(jti=jti).first()
+    if token is None:
+        return True
+    else:
+        return token.revoked
+
+
+@jwt.revoked_token_loader
+@jwt.expired_token_loader
+def expired_token_msg(jwt_header, jwt_payload):
+    return jsonify({
+        "error": "token has been revoked or has expired",
+    }), 401
+
+
+@jwt.invalid_token_loader
+def invalid_token_msg(error):
+    return jsonify({
+        "error": "invalid token in request, {}".format(error),
+    }), 401
+
+
+@jwt.unauthorized_loader
+def missing_token_msg(error):
+    return jsonify({
+        "error": "Missing token in request, {}".format(error)
+    }), 401
