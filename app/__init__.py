@@ -1,5 +1,5 @@
 import os
-from flask import Flask, json, jsonify, request, render_template, flash
+from flask import Flask, app, json, jsonify, request, render_template, flash
 
 from app.blueprints.api_v1 import (
     auth, profile, maintenance
@@ -18,6 +18,7 @@ from app.extensions import (
 from app.utils.exceptions import (
     APIException
 )
+from app.utils.helpers import JSONResponse
 
 from app.models.users import (TokenBlacklist)
 
@@ -86,20 +87,27 @@ def check_if_token_revoked(jwt_header, jwt_payload):
 @jwt.revoked_token_loader
 @jwt.expired_token_loader
 def expired_token_msg(jwt_header, jwt_payload):
-    return jsonify({
-        "error": "token has been revoked or has expired",
-    }), 403
-
+    rsp = JSONResponse(
+        message="token has been revoked or has expired",
+        app_status="error",
+        payload={"invalid": "token revoked"}
+    )
+    return jsonify(rsp.serialize()), 403
 
 @jwt.invalid_token_loader
 def invalid_token_msg(error):
-    return jsonify({
-        "error": "invalid token in request, {}".format(error),
-    }), 400
-
+    rsp = JSONResponse(
+        message=error,
+        app_status="error",
+        payload={"invalid": ["jwt"]}
+    )
+    return jsonify(rsp.serialize()), 400
 
 @jwt.unauthorized_loader
 def missing_token_msg(error):
-    return jsonify({
-        "error": "Missing token in request, {}".format(error)
-    }), 400
+    rsp = JSONResponse(
+        message=error,
+        app_status="error",
+        payload={"missing": ["jwt"]}
+    )
+    return jsonify(rsp.serialize()), 400

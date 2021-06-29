@@ -1,12 +1,11 @@
 import uuid
-import os
 from datetime import datetime
 from flask import (
-    Blueprint, json, jsonify, request, abort
+    Blueprint, jsonify, request, abort
 )
 #extensions
 from app.extensions import (
-    jwt, db
+    db
 )
 #models
 from app.models.users import (
