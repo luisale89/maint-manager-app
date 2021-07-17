@@ -88,8 +88,7 @@ def signup():
             email=email, 
             password=password, 
             fname=normalize_names(fname, spaces=True),
-            lname=normalize_names(lname, spaces=True), 
-            public_id=str(uuid.uuid4()),
+            lname=normalize_names(lname, spaces=True),
             email_confirm=False,
             status='active'
         )
@@ -151,7 +150,6 @@ def login():
     respuesta: {
         "access_token": jwt_access_token,
         "user": {
-            "public_id": int,
             "fname": string,
             "lname": string,
             "profile_img": url,

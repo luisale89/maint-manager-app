@@ -32,7 +32,6 @@ def get_profile():
     requerido: {} # header of the request includes JWT wich is linked to the user email
     respuesta: 
         "user": {
-            "public_id": int,
             "fname": string,
             "lname": string,
             "profile_img": url,
