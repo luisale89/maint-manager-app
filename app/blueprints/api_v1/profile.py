@@ -69,7 +69,7 @@ def update():
         'lname': only_letters(lname, spaces=True, max_length=128)
     })
 
-    if len(profile_img) > 255: #especial validation, find out if you needo to do more validations on urls
+    if len(profile_img) > 255: #special validation, find out if you needo to do more validations on urls
         raise APIException(message="profile img url is too long")
     
     user.fname = normalize_names(fname, spaces=True)
