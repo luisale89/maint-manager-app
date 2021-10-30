@@ -9,7 +9,10 @@ from app.extensions import (
 )
 #models
 from app.models.users import (
-    User, TokenBlacklist
+    User
+)
+from app.models.global_models import (
+    TokenBlacklist
 )
 #exceptions
 from sqlalchemy.exc import (

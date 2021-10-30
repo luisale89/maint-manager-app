@@ -20,7 +20,7 @@ from app.utils.exceptions import (
 )
 from app.utils.helpers import JSONResponse
 
-from app.models.users import (TokenBlacklist)
+from app.models.global_models import (TokenBlacklist)
 
 
 def handle_not_found(e):

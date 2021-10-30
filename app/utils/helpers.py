@@ -3,7 +3,10 @@ from flask_jwt_extended import decode_token
 
 from app.extensions import db
 from app.models.users import (
-    TokenBlacklist, User
+    User
+)
+from app.models.global_models import (
+    TokenBlacklist
 )
 from flask import jsonify
 

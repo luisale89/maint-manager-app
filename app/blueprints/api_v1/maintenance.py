@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify
 from datetime import datetime
 from app.extensions import db
-from app.models.users import TokenBlacklist
+from app.models.global_models import TokenBlacklist
 
 
 admin_bp = Blueprint('admin_bp', __name__)
