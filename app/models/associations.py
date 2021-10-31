@@ -12,8 +12,8 @@ class WorkRelation(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     #relations
-    user = db.relationship('User', back_populates='work_relations', uselist=False, lazy=False)
-    company = db.relationship('Company', back_populates='work_relations', uselist=False, lazy=False)
+    user = db.relationship('User', back_populates='work_relations', uselist=False, lazy=True)
+    company = db.relationship('Company', back_populates='work_relations', uselist=False, lazy=True)
 
     def __repr__(self) -> str:
         return '<work_relation %r' % self.id
@@ -25,20 +25,37 @@ class WorkRelation(db.Model):
         }
 
 
-class ProviderWorkorder(db.Model):
-    __tablename__ = 'provider_workorder'
+class AssocProviderWorkorder(db.Model):
+    __tablename__ = 'assoc_provider_workorder'
     id = db.Column(db.Integer, primary_key=True)
-    #associations
     provider_id = db.Column(db.Integer, db.ForeignKey('provider.id'), nullable=False)
     work_order_id = db.Column(db.Integer, db.ForeignKey('work_order.id'), nullable=False)
     #relations
-    provider = db.relationship('Provider', back_populates='assoc_work_order', uselist=False, lazy=True)
-    work_order = db.relationship('MaintenanceActivity', back_populates='assoc_provider', uselist=False, lazy=True)
+    provider = db.relationship('Provider', back_populates='assoc_workorders', uselist=False, lazy=True)
+    workorder = db.relationship('WorkOrder', back_populates='assoc_providers', uselist=False, lazy=True)
 
     def __repr__(self) -> str:
-        return '<Provider_Activiy_list %r>' % self.id
+        return '<assoc provider %r workorder %r>' %(self.provider_id %self.work_order_id)
 
     def serialize(self):
         return {
-            'id': self.id,
+            'id': self.id
+        }
+
+
+class AssocProviderSpare(db.Model):
+    __tablename__ = 'assoc_provider_spare'
+    id = db.Column(db.Integer, primary_key=True)
+    provider_id = db.Column(db.Integer, db.ForeignKey('provider.id'), nullable=False)
+    spare_id = db.Column(db.Integer, db.ForeignKey('spare.id'), nullable=False)
+    #relations
+    provider = db.relationship('Provider', back_populates='assoc_spares', uselist=False)
+    spare = db.relationship('Spare', back_populates='assoc_providers', uselist=False)
+
+    def __repr__(self) -> str:
+        return '<Assoc provider %r spare %r>' %(self.provider_id, self.spare_id)
+
+    def serialize(self) -> dict:
+        return {
+            "id": self.id
         }

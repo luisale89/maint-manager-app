@@ -6,20 +6,19 @@ from app.extensions import (
 from flask_admin.contrib.sqla import ModelView
 
 from app.models.main import (
-    User, Company
-)
-from app.models.global_models import (
-    TokenBlacklist, Country, Category
+    User, WorkOrder, Provider, Company, Spare
 )
 from app.models.associations import (
-    WorkRelation
+    WorkRelation, AssocProviderWorkorder, AssocProviderSpare
 )
 
 db_admin_bp = Blueprint('db_admin_bp', __name__)
 
 admin.add_view(ModelView(User, db.session))
-admin.add_view(ModelView(TokenBlacklist, db.session))
 admin.add_view(ModelView(WorkRelation, db.session))
+admin.add_view(ModelView(AssocProviderWorkorder, db.session))
+admin.add_view(ModelView(AssocProviderSpare, db.session))
+admin.add_view(ModelView(WorkOrder, db.session))
+admin.add_view(ModelView(Provider, db.session))
 admin.add_view(ModelView(Company, db.session))
-admin.add_view(ModelView(Country, db.session))
-admin.add_view(ModelView(Category, db.session))
+admin.add_view(ModelView(Spare, db.session))

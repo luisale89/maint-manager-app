@@ -50,7 +50,7 @@ class Category(db.Model):
     __tablename__ = 'category'
     id = db.Column(db.Integer, primary_key=True)
     value = db.Column(db.String(128), nullable=False)
-    route = db.Column(JSON)
+    route = db.Column(JSON) #route to the root -> [root, 1, 2, 3, 6] array of id of each parent
     #relations
 
     def __repr__(self) -> str:

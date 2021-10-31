@@ -20,7 +20,7 @@ class User(db.Model):
     email_confirm = db.Column(db.Boolean)
     status = db.Column(db.String(12))
     #relations
-    work_relations = db.relationship('WorkRelation', back_populates='user', lazy=False)
+    work_relations = db.relationship('WorkRelation', back_populates='user', lazy=True)
 
     def __repr__(self):
         return '<User %r>' % self.id
@@ -59,8 +59,10 @@ class Company(db.Model):
     company_address = db.Column(JSON)
     start_date = db.Column(db.DateTime, default=datetime.utcnow)
     #relationships
-    work_relations = db.relationship('WorkRelation', back_populates='company', lazy=False)
-    
+    work_relations = db.relationship('WorkRelation', back_populates='company', lazy=True)
+    spares = db.relationship('Spare', back_populates='company', lazy=True)
+    providers = db.relationship('Provider', back_populates='company', lazy=True)
+
     def __repr__(self) -> str:
         return '<Company %r>' % self.id
 
@@ -78,8 +80,11 @@ class Provider(db.Model):
     name = db.Column(db.String(128), nullable=False)
     address = db.Column(JSON)
     contacts = db.Column(JSON)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     #relations
-    assoc_work_order = db.relationship('ProviderWorkorder', back_populates='provider', lazy=True)
+    company = db.relationship('Company', back_populates='providers', lazy=True)
+    assoc_workorders = db.relationship('AssocProviderWorkorder', back_populates='provider', lazy=True)
+    assoc_spares = db.relationship('AssocProviderSpare', back_populates='provider', lazy=True)
 
     def __repr__(self) -> str:
         return '<provider %r>' % self.id
@@ -92,11 +97,15 @@ class Provider(db.Model):
         }
 
 
-class Spares(db.Model):
-    __tablename__ = 'spares'
+class Spare(db.Model):
+    __tablename__ = 'spare'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), nullable=False)
     description = db.Column(db.Text)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+    #relations
+    company = db.relationship('Company', back_populates='spares', lazy=True)
+    assoc_providers = db.relationship('AssocProviderSpare', back_populates='spare', lazy=True)
 
     def __repr__(self) -> str:
         return '<Spare %r>' % self.id
@@ -150,7 +159,7 @@ class WorkOrder(db.Model):
     name = db.Column(db.String(128), nullable=False)
     description = db.Column(db.Text)
     #relations
-    assoc_provider = db.relationship('ProviderWorkorder', back_poppulates='work_order', lazy=True)
+    assoc_providers = db.relationship('AssocProviderWorkorder', back_populates='workorder', lazy=True)
 
     def __repr__(self) -> str:
         return '<WorkOrder %r>' % self.id
