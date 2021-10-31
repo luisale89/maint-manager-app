@@ -2,7 +2,7 @@ from datetime import datetime
 from flask_jwt_extended import decode_token
 
 from app.extensions import db
-from app.models.users import (
+from app.models.main import (
     User
 )
 from app.models.global_models import (

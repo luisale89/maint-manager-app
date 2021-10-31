@@ -1,4 +1,6 @@
+from enum import unique
 from app.extensions import db
+from sqlalchemy.dialects.postgresql import JSON
 
 
 class TokenBlacklist(db.Model):
@@ -34,11 +36,46 @@ class Country(db.Model):
     #relations
 
     def __repr__(self) -> str:
-        return '<%r>' % self.name
+        return '<Country %r>' % self.id
 
     def serialize(self):
         return {
             "id": self.id,
             "name": self.name,
             "code": self.code
+        }
+
+
+class Category(db.Model):
+    __tablename__ = 'category'
+    id = db.Column(db.Integer, primary_key=True)
+    value = db.Column(db.String(128), nullable=False)
+    root = db.Column(JSON)
+    #relations
+
+    def __repr__(self) -> str:
+        return '<Category %r>' % self.id
+
+    def serialize(self) -> dict:
+        return {
+            "id": self.id,
+            "value": self.value,
+            "root": self.root
+        }
+
+
+class Variable(db.Model):
+    __tablename__ = 'variable'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(128), nullable=False)
+    unit = db.Column(db.String(128))
+
+    def __repr__(self) -> str:
+        return '<Variable %r>' % self.id
+
+    def serialize(self) -> dict:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "unit": self.unit
         }

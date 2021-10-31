@@ -8,7 +8,7 @@ from app.extensions import (
     db
 )
 #models
-from app.models.users import (
+from app.models.main import (
     User
 )
 from app.models.global_models import (
