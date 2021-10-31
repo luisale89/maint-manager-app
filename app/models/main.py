@@ -78,6 +78,8 @@ class Provider(db.Model):
     name = db.Column(db.String(128), nullable=False)
     address = db.Column(JSON)
     contacts = db.Column(JSON)
+    #relations
+    assoc_work_order = db.relationship('ProviderWorkorder', back_populates='provider', lazy=True)
 
     def __repr__(self) -> str:
         return '<provider %r>' % self.id
@@ -145,8 +147,10 @@ class Asset(db.Model):
 class WorkOrder(db.Model):
     __tablename__ = 'work_order'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(128), nullable=True)
+    name = db.Column(db.String(128), nullable=False)
     description = db.Column(db.Text)
+    #relations
+    assoc_provider = db.relationship('ProviderWorkorder', back_poppulates='work_order', lazy=True)
 
     def __repr__(self) -> str:
         return '<WorkOrder %r>' % self.id
@@ -155,7 +159,7 @@ class WorkOrder(db.Model):
         return {
             'id': self.id,
             'name': self.name,
-            'description': self.description,
+            'description': self.description
         }
 
 
@@ -164,6 +168,7 @@ class MaintenanceActivity(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), nullable=False)
     description = db.Column(db.Text)
+    #relations
 
     def __repr__(self) -> str:
         return '<maintenance_activity %r>' % self.id

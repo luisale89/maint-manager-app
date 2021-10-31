@@ -11,7 +11,7 @@ from app.models.main import (
 from app.models.global_models import (
     TokenBlacklist, Country, Category
 )
-from app.models.assosiations import (
+from app.models.associations import (
     WorkRelation
 )
 

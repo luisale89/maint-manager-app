@@ -50,7 +50,7 @@ class Category(db.Model):
     __tablename__ = 'category'
     id = db.Column(db.Integer, primary_key=True)
     value = db.Column(db.String(128), nullable=False)
-    root = db.Column(JSON)
+    route = db.Column(JSON)
     #relations
 
     def __repr__(self) -> str:
@@ -60,7 +60,7 @@ class Category(db.Model):
         return {
             "id": self.id,
             "value": self.value,
-            "root": self.root
+            "route": self.route
         }
 
 
