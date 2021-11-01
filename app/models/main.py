@@ -62,6 +62,11 @@ class Company(db.Model):
     work_relations = db.relationship('WorkRelation', back_populates='company', lazy=True)
     spares = db.relationship('Spare', back_populates='company', lazy=True)
     providers = db.relationship('Provider', back_populates='company', lazy=True)
+    workorders = db.relationship('WorkOrder', back_populates='company', lazy=True)
+    assets = db.relationship('Asset', back_populates='company', lazy=True)
+    locations = db.relationship('Location', back_populates='company', lazy=True)
+    maint_activities = db.relationship('MaintenanceActivity', back_populates='company', lazy=True)
+    maint_plans = db.relationship('MaintenancePlan', back_populates='company', lazy=True)
 
     def __repr__(self) -> str:
         return '<Company %r>' % self.id
@@ -82,7 +87,7 @@ class Provider(db.Model):
     contacts = db.Column(JSON)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     #relations
-    company = db.relationship('Company', back_populates='providers', lazy=True)
+    company = db.relationship('Company', back_populates='providers', uselist=False, lazy=True)
     assoc_workorders = db.relationship('AssocProviderWorkorder', back_populates='provider', lazy=True)
     assoc_spares = db.relationship('AssocProviderSpare', back_populates='provider', lazy=True)
 
@@ -104,8 +109,9 @@ class Spare(db.Model):
     description = db.Column(db.Text)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     #relations
-    company = db.relationship('Company', back_populates='spares', lazy=True)
+    company = db.relationship('Company', back_populates='spares', uselist=False, lazy=True)
     assoc_providers = db.relationship('AssocProviderSpare', back_populates='spare', lazy=True)
+    assoc_assets = db.relationship('AssocSpareAsset', back_populates='spare', lazy=True)
 
     def __repr__(self) -> str:
         return '<Spare %r>' % self.id
@@ -124,6 +130,9 @@ class Location(db.Model):
     name = db.Column(db.String(128), nullable=False)
     address = db.Column(JSON)
     contacts = db.Column(JSON)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+    #relations
+    company = db.relationship('Company', back_populates='locations', uselist=False, lazy=True)
 
     def __repr__(self) -> str:
         return '<Location %r>' % self.id
@@ -141,6 +150,11 @@ class Asset(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), nullable=False)
     description = db.Column(db.Text)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+    #relations
+    company = db.relationship('Company', back_populates='assets', uselist=False, lazy=True)
+    assoc_spares = db.relationship('AssocSpareAsset', back_populates='asset', lazy=True)
+    assoc_activities = db.relationship('AssocActivityAsset', back_populates='asset', lazy=True)
 
     def __repr__(self) -> str:
         return '<asset %r>' % self.id
@@ -158,7 +172,9 @@ class WorkOrder(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), nullable=False)
     description = db.Column(db.Text)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     #relations
+    company = db.relationship('Company', back_populates='workorders', uselist=False, lazy=True)
     assoc_providers = db.relationship('AssocProviderWorkorder', back_populates='workorder', lazy=True)
 
     def __repr__(self) -> str:
@@ -177,7 +193,10 @@ class MaintenanceActivity(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), nullable=False)
     description = db.Column(db.Text)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     #relations
+    company = db.relationship('Company', back_populates='maint_activities', uselist=False, lazy=True)
+    assoc_assets = db.relationship('AssocActivityAsset', back_populates='maint_activity', lazy=True)
 
     def __repr__(self) -> str:
         return '<maintenance_activity %r>' % self.id
@@ -195,6 +214,9 @@ class MaintenancePlan(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), nullable=False)
     description = db.Column(db.Text)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+    #relations
+    company = db.relationship('Company', back_populates='maint_plans', uselist=False, lazy=True)
 
     def __repr__(self) -> str:
         return '<maintenance_plan %r>' % self.id
