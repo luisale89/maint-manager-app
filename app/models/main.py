@@ -64,7 +64,6 @@ class Company(db.Model):
     providers = db.relationship('Provider', back_populates='company', lazy=True)
     workorders = db.relationship('WorkOrder', back_populates='company', lazy=True)
     assets = db.relationship('Asset', back_populates='company', lazy=True)
-    locations = db.relationship('Location', back_populates='company', lazy=True)
     maint_activities = db.relationship('MaintenanceActivity', back_populates='company', lazy=True)
     maint_plans = db.relationship('MaintenancePlan', back_populates='company', lazy=True)
 
@@ -124,33 +123,15 @@ class Spare(db.Model):
         }
 
 
-class Location(db.Model):
-    __tablename__ = 'location'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(128), nullable=False)
-    address = db.Column(JSON)
-    contacts = db.Column(JSON)
-    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
-    #relations
-    company = db.relationship('Company', back_populates='locations', uselist=False, lazy=True)
-
-    def __repr__(self) -> str:
-        return '<Location %r>' % self.id
-
-    def serialize(self) -> dict:
-        return {
-            'id': self.id,
-            'name': self.name,
-            'address': self.address,
-        }
-
-
 class Asset(db.Model):
     __tablename__ = 'asset'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), nullable=False)
     description = db.Column(db.Text)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+    asset_type = db.Column(db.String(128), nullable=False) #asset or location
+    parent = db.Column(db.Integer) #id of the parent node
+    children = db.Column(JSON) #array of children's id
     #relations
     company = db.relationship('Company', back_populates='assets', uselist=False, lazy=True)
     assoc_spares = db.relationship('AssocSpareAsset', back_populates='asset', lazy=True)

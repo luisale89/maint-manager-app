@@ -1,4 +1,6 @@
 from enum import unique
+
+from sqlalchemy.orm import backref
 from app.extensions import db
 from sqlalchemy.dialects.postgresql import JSON
 
@@ -50,11 +52,12 @@ class Category(db.Model):
     __tablename__ = 'category'
     id = db.Column(db.Integer, primary_key=True)
     value = db.Column(db.String(128), nullable=False)
-    route = db.Column(JSON) #route to the root -> [root, 1, 2, 3, 6] array of id of each parent
+    parent_id = db.Column(db.Integer, db.ForeignKey('category.id'))
     #relations
+    children = db.relationship('Category', cascade="all, delete-orphan", backref=backref('parent', remote_side=id))
 
     def __repr__(self) -> str:
-        return '<Category %r>' % self.id
+        return '<Category %r>' % self.value
 
     def serialize(self) -> dict:
         return {
