@@ -4,7 +4,7 @@ from datetime import datetime
 
 from werkzeug.security import generate_password_hash
 from sqlalchemy.dialects.postgresql import JSON
-
+from sqlalchemy.orm import backref
 
 class User(db.Model):
     __tablename__ = 'user'
@@ -87,8 +87,8 @@ class Provider(db.Model):
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     #relations
     company = db.relationship('Company', back_populates='providers', uselist=False, lazy=True)
-    assoc_workorders = db.relationship('AssocProviderWorkorder', back_populates='provider', lazy=True)
-    assoc_spares = db.relationship('AssocProviderSpare', back_populates='provider', lazy=True)
+    assoc_workorders = db.relationship('AssocProviderWorkorder', cascade='all, delete-orphan', back_populates='provider', lazy=True)
+    assoc_spares = db.relationship('AssocProviderSpare', cascade='all, delete-orphan', back_populates='provider', lazy=True)
 
     def __repr__(self) -> str:
         return '<provider %r>' % self.id
@@ -109,11 +109,11 @@ class Spare(db.Model):
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     #relations
     company = db.relationship('Company', back_populates='spares', uselist=False, lazy=True)
-    assoc_providers = db.relationship('AssocProviderSpare', back_populates='spare', lazy=True)
-    assoc_assets = db.relationship('AssocSpareAsset', back_populates='spare', lazy=True)
+    assoc_providers = db.relationship('AssocProviderSpare', cascade='all, delete-orphan', back_populates='spare', lazy=True)
+    assoc_assets = db.relationship('AssocSpareAsset', cascade='all, delete-orphan', back_populates='spare', lazy=True)
 
     def __repr__(self) -> str:
-        return '<Spare %r>' % self.id
+        return '<Spare %r>' % self.name
 
     def serialize(self) -> dict:
         return {
@@ -128,17 +128,17 @@ class Asset(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), nullable=False)
     description = db.Column(db.Text)
-    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     asset_type = db.Column(db.String(128), nullable=False) #asset or location
-    parent = db.Column(db.Integer) #id of the parent node
-    children = db.Column(JSON) #array of children's id
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+    parent_id = db.Column(db.Integer, db.ForeignKey('asset.id'))
     #relations
+    children = db.relationship('Asset', cascade="all, delete-orphan", backref=backref('parent', remote_side=id))
     company = db.relationship('Company', back_populates='assets', uselist=False, lazy=True)
-    assoc_spares = db.relationship('AssocSpareAsset', back_populates='asset', lazy=True)
-    assoc_activities = db.relationship('AssocActivityAsset', back_populates='asset', lazy=True)
+    assoc_spares = db.relationship('AssocSpareAsset', cascade='all, delete-orphan', back_populates='asset', lazy=True)
+    assoc_activities = db.relationship('AssocActivityAsset', cascade='all, delete-orphan',back_populates='asset', lazy=True)
 
     def __repr__(self) -> str:
-        return '<asset %r>' % self.id
+        return '<asset %r>' % self.name
 
     def serialize(self) -> dict:
         return {
@@ -156,7 +156,7 @@ class WorkOrder(db.Model):
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     #relations
     company = db.relationship('Company', back_populates='workorders', uselist=False, lazy=True)
-    assoc_providers = db.relationship('AssocProviderWorkorder', back_populates='workorder', lazy=True)
+    assoc_providers = db.relationship('AssocProviderWorkorder', cascade='all, delete-orphan', back_populates='workorder', lazy=True)
 
     def __repr__(self) -> str:
         return '<WorkOrder %r>' % self.id
@@ -177,10 +177,10 @@ class MaintenanceActivity(db.Model):
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     #relations
     company = db.relationship('Company', back_populates='maint_activities', uselist=False, lazy=True)
-    assoc_assets = db.relationship('AssocActivityAsset', back_populates='maint_activity', lazy=True)
+    assoc_assets = db.relationship('AssocActivityAsset', cascade='all, delete-orphan', back_populates='maint_activity', lazy=True)
 
     def __repr__(self) -> str:
-        return '<maintenance_activity %r>' % self.id
+        return '<maint %r>' % self.name
 
     def serialize(self) -> dict:
         return {

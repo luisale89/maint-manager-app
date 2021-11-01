@@ -62,8 +62,7 @@ class Category(db.Model):
     def serialize(self) -> dict:
         return {
             "id": self.id,
-            "value": self.value,
-            "route": self.route
+            "value": self.value
         }
 
 
