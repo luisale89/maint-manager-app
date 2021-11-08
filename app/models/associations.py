@@ -87,6 +87,7 @@ class AssocActivityAsset(db.Model):
     #relations
     maint_activity = db.relationship('MaintenanceActivity', back_populates='assoc_assets', uselist=False, lazy=True)
     asset = db.relationship('Asset', back_populates='assoc_activities', uselist=False, lazy=True)
+    workorders = db.relationship('WorkOrder', back_populates='assoc_activity', lazy=True)
 
     def __repr__(self) -> str:
         return '<Assoc activity %r asset %r>' %(self.activity_id, self.asset_id)

@@ -66,6 +66,7 @@ class Company(db.Model):
     assets = db.relationship('Asset', back_populates='company', lazy=True)
     maint_activities = db.relationship('MaintenanceActivity', back_populates='company', lazy=True)
     maint_plans = db.relationship('MaintenancePlan', back_populates='company', lazy=True)
+    locations = db.relationship('Location', back_populates='company', lazy=True)
 
     def __repr__(self) -> str:
         return '<Company %r>' % self.id
@@ -131,9 +132,11 @@ class Asset(db.Model):
     asset_type = db.Column(db.String(128), nullable=False) #asset or location
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     parent_id = db.Column(db.Integer, db.ForeignKey('asset.id'))
+    location_id = db.Column(db.Integer, db.ForeignKey('location.id'))
     #relations
     children = db.relationship('Asset', cascade="all, delete-orphan", backref=backref('parent', remote_side=id))
     company = db.relationship('Company', back_populates='assets', uselist=False, lazy=True)
+    location = db.relationship('Location', back_populates='assets', uselist=False, lazy=True) #* revisar cascade
     assoc_spares = db.relationship('AssocSpareAsset', cascade='all, delete-orphan', back_populates='asset', lazy=True)
     assoc_activities = db.relationship('AssocActivityAsset', cascade='all, delete-orphan',back_populates='asset', lazy=True)
 
@@ -154,9 +157,11 @@ class WorkOrder(db.Model):
     name = db.Column(db.String(128), nullable=False)
     description = db.Column(db.Text)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+    assoc_activity_id = db.Column(db.Integer, db.ForeignKey('assoc_activity_asset.id'), nullable=False)
     #relations
     company = db.relationship('Company', back_populates='workorders', uselist=False, lazy=True)
     assoc_providers = db.relationship('AssocProviderWorkorder', cascade='all, delete-orphan', back_populates='workorder', lazy=True)
+    assoc_activity = db.relationship('AssocActivityAsset', back_populates='workorders', lazy=True)
 
     def __repr__(self) -> str:
         return '<WorkOrder %r>' % self.id
@@ -207,4 +212,27 @@ class MaintenancePlan(db.Model):
             'id': self.id,
             'name': self.name,
             'description': self.description,
+        }
+
+
+class Location(db.Model):
+    __tablename__ = 'location'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(128), nullable=False)
+    description = db.Column(db.Text)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+    parent_id = db.Column(db.Integer, db.ForeignKey('location.id'))
+    #relations
+    children = db.relationship('Location', cascade="all, delete-orphan", backref=backref('parent', remote_side=id))
+    company = db.relationship('Company', back_populates='locations', uselist=False, lazy=True)
+    assets = db.relationship('Asset', back_populates='location', lazy=True)
+
+    def __repr__(self) -> str:
+        return '<location %r>' % self.id
+
+    def serialize(self) -> dict:
+        return {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description
         }
