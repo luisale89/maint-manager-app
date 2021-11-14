@@ -1,3 +1,4 @@
+from sqlalchemy.orm import backref
 from app.extensions import db
 from datetime import datetime
 
@@ -14,6 +15,7 @@ class WorkRelation(db.Model):
     #relations
     user = db.relationship('User', back_populates='work_relations', uselist=False, lazy=True)
     company = db.relationship('Company', back_populates='work_relations', uselist=False, lazy=True)
+    wOrders = db.relationship('WorkOrder', secondary='wRelation_wOrder', lazy='subquery', backref=db.backref('wRelations', lazy=True))
 
     def __repr__(self) -> str:
         return '<work_relation %r' % self.id
@@ -79,20 +81,13 @@ class AssocSpareAsset(db.Model):
         }
 
 
-class AssocActivityAsset(db.Model):
-    __tablename__ = 'assoc_activity_asset'
-    id = db.Column(db.Integer, primary_key=True)
-    activity_id = db.Column(db.Integer, db.ForeignKey('maintenance_activity.id'), nullable=False)
-    asset_id = db.Column(db.Integer, db.ForeignKey('asset.id'), nullable=False)
-    #relations
-    maint_activity = db.relationship('MaintenanceActivity', back_populates='assoc_assets', uselist=False, lazy=True)
-    asset = db.relationship('Asset', back_populates='assoc_activities', uselist=False, lazy=True)
-    workorders = db.relationship('WorkOrder', back_populates='assoc_activity', lazy=True)
+#helper tables - many 2 many
+wRelation_wOrder = db.Table('wRelation_wOrder', 
+    db.Column('wRelation_id', db.Integer, db.ForeignKey('work_relation.id'), primary_key=True),
+    db.Column('wOrder_id', db.Integer, db.ForeignKey('work_order.id'), primary_key=True)
+)
 
-    def __repr__(self) -> str:
-        return '<Assoc activity %r asset %r>' %(self.activity_id, self.asset_id)
-
-    def serialize(self) -> dict:
-        return {
-            "id": self.id
-        }
+mPlan_asset = db.Table('mPlan_asset',
+    db.Column('mPlan_id', db.Integer, db.ForeignKey('maintenance_plan.id'), primary_key=True),
+    db.Column('asset_id', db.Integer, db.ForeignKey('asset.id'), primary_key=True)
+)
