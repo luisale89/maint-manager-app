@@ -20,7 +20,7 @@ class User(db.Model):
     email_confirm = db.Column(db.Boolean)
     status = db.Column(db.String(12))
     #relations
-    work_relations = db.relationship('WorkRelation', back_populates='user', lazy=True)
+    company_users = db.relationship('CompanyUser', back_populates='user', lazy=True)
 
     def __repr__(self):
         return '<User %r>' % self.id
@@ -59,8 +59,8 @@ class Company(db.Model):
     company_address = db.Column(JSON)
     start_date = db.Column(db.DateTime, default=datetime.utcnow)
     #relationships
-    work_relations = db.relationship('WorkRelation', back_populates='company', lazy=True)
-    spares = db.relationship('Spare', back_populates='company', lazy=True)
+    company_users = db.relationship('CompanyUser', back_populates='company', lazy=True)
+    spare_parts = db.relationship('SparePart', back_populates='company', lazy=True)
     providers = db.relationship('Provider', back_populates='company', lazy=True)
     assets = db.relationship('Asset', back_populates='company', lazy=True)
     maint_activities = db.relationship('MaintenanceActivity', back_populates='company', lazy=True)
@@ -87,8 +87,7 @@ class Provider(db.Model):
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     #relations
     company = db.relationship('Company', back_populates='providers', uselist=False, lazy=True)
-    assoc_workorders = db.relationship('AssocProviderWorkorder', cascade='all, delete-orphan', back_populates='provider', lazy=True)
-    assoc_spares = db.relationship('AssocProviderSpare', cascade='all, delete-orphan', back_populates='provider', lazy=True)
+    provider_spare_parts = db.relationship('ProviderSparePart', cascade='all, delete-orphan', back_populates='provider', lazy=True)
 
     def __repr__(self) -> str:
         return '<provider %r>' % self.id
@@ -101,16 +100,16 @@ class Provider(db.Model):
         }
 
 
-class Spare(db.Model):
-    __tablename__ = 'spare'
+class SparePart(db.Model):
+    __tablename__ = 'spare_part'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), nullable=False)
     description = db.Column(db.Text)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     #relations
-    company = db.relationship('Company', back_populates='spares', uselist=False, lazy=True)
-    assoc_providers = db.relationship('AssocProviderSpare', cascade='all, delete-orphan', back_populates='spare', lazy=True)
-    assoc_assets = db.relationship('AssocSpareAsset', cascade='all, delete-orphan', back_populates='spare', lazy=True)
+    company = db.relationship('Company', back_populates='spare_parts', uselist=False, lazy=True)
+    provider_spare_parts = db.relationship('ProviderSparePart', cascade='all, delete-orphan', back_populates='spare_part', lazy=True)
+    asset_spare_parts = db.relationship('AssetSparePart', cascade='all, delete-orphan', back_populates='spare_part', lazy=True)
 
     def __repr__(self) -> str:
         return '<Spare %r>' % self.name
@@ -136,7 +135,7 @@ class Asset(db.Model):
     children = db.relationship('Asset', cascade="all, delete-orphan", backref=backref('parent', remote_side=id))
     company = db.relationship('Company', back_populates='assets', uselist=False, lazy=True)
     location = db.relationship('Location', back_populates='assets', uselist=False, lazy=True) #* revisar cascade
-    assoc_spares = db.relationship('AssocSpareAsset', cascade='all, delete-orphan', back_populates='asset', lazy=True)
+    asset_spare_parts = db.relationship('AssetSparePart', cascade='all, delete-orphan', back_populates='asset', lazy=True)
 
     def __repr__(self) -> str:
         return '<asset %r>' % self.name
@@ -154,8 +153,9 @@ class WorkOrder(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), nullable=False)
     description = db.Column(db.Text)
+    company_user_id = db.Column(db.Integer, db.ForeignKey('company_user.id'))
     #relations
-    assoc_providers = db.relationship('AssocProviderWorkorder', cascade='all, delete-orphan', back_populates='workorder', lazy=True)
+    company_user = db.relationship('CompanyUser', back_populates='', uselist=False, lazy=True)
 
     def __repr__(self) -> str:
         return '<WorkOrder %r>' % self.id
@@ -164,7 +164,7 @@ class WorkOrder(db.Model):
         return {
             'id': self.id,
             'name': self.name,
-            'description': self.description
+            'description': self.descriptions
         }
 
 

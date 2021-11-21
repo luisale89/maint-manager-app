@@ -3,8 +3,8 @@ from app.extensions import db
 from datetime import datetime
 
 
-class WorkRelation(db.Model):
-    __tablename__ = 'work_relation'
+class CompanyUser(db.Model):
+    __tablename__ = 'company_user'
     id = db.Column(db.Integer, primary_key=True)
     rel_date = db.Column(db.DateTime, default=datetime.utcnow)
     user_role = db.Column(db.String(24), nullable=False)
@@ -13,12 +13,12 @@ class WorkRelation(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     #relations
-    user = db.relationship('User', back_populates='work_relations', uselist=False, lazy=True)
-    company = db.relationship('Company', back_populates='work_relations', uselist=False, lazy=True)
-    wOrders = db.relationship('WorkOrder', secondary='wRelation_wOrder', lazy='subquery', backref=db.backref('wRelations', lazy=True))
+    user = db.relationship('User', back_populates='company_users', uselist=False, lazy=True)
+    company = db.relationship('Company', back_populates='company_users', uselist=False, lazy=True)
+    work_orders = db.relationship('WorkOrder', back_populates='company_user', lazy=False)
 
     def __repr__(self) -> str:
-        return '<work_relation %r' % self.id
+        return '<company_user %r' % self.id
 
     def serialize(self) -> dict:
         return {
@@ -26,36 +26,36 @@ class WorkRelation(db.Model):
             "rel_date": self.rel_date,
         }
 
+#!to-delete
+# class AssocProviderWorkorder(db.Model):
+#     __tablename__ = 'assoc_provider_workorder'
+#     id = db.Column(db.Integer, primary_key=True)
+#     provider_id = db.Column(db.Integer, db.ForeignKey('provider.id'), nullable=False)
+#     work_order_id = db.Column(db.Integer, db.ForeignKey('work_order.id'), nullable=False)
+#     #relations
+#     provider = db.relationship('Provider', back_populates='assoc_workorders', uselist=False, lazy=True)
+#     workorder = db.relationship('WorkOrder', back_populates='assoc_providers', uselist=False, lazy=True)
 
-class AssocProviderWorkorder(db.Model):
-    __tablename__ = 'assoc_provider_workorder'
+#     def __repr__(self) -> str:
+#         return '<assoc provider %r workorder %r>' %(self.provider_id %self.work_order_id)
+
+#     def serialize(self):
+#         return {
+#             'id': self.id
+#         }
+
+
+class ProviderSparePart(db.Model):
+    __tablename__ = 'provider_spare_part'
     id = db.Column(db.Integer, primary_key=True)
     provider_id = db.Column(db.Integer, db.ForeignKey('provider.id'), nullable=False)
-    work_order_id = db.Column(db.Integer, db.ForeignKey('work_order.id'), nullable=False)
+    spare_part_id = db.Column(db.Integer, db.ForeignKey('spare_part.id'), nullable=False)
     #relations
-    provider = db.relationship('Provider', back_populates='assoc_workorders', uselist=False, lazy=True)
-    workorder = db.relationship('WorkOrder', back_populates='assoc_providers', uselist=False, lazy=True)
+    provider = db.relationship('Provider', back_populates='provider_spare_parts', uselist=False, lazy=True)
+    spare_part = db.relationship('SparePart', back_populates='provider_spare_parts', uselist=False, lazy=True)
 
     def __repr__(self) -> str:
-        return '<assoc provider %r workorder %r>' %(self.provider_id %self.work_order_id)
-
-    def serialize(self):
-        return {
-            'id': self.id
-        }
-
-
-class AssocProviderSpare(db.Model):
-    __tablename__ = 'assoc_provider_spare'
-    id = db.Column(db.Integer, primary_key=True)
-    provider_id = db.Column(db.Integer, db.ForeignKey('provider.id'), nullable=False)
-    spare_id = db.Column(db.Integer, db.ForeignKey('spare.id'), nullable=False)
-    #relations
-    provider = db.relationship('Provider', back_populates='assoc_spares', uselist=False, lazy=True)
-    spare = db.relationship('Spare', back_populates='assoc_providers', uselist=False, lazy=True)
-
-    def __repr__(self) -> str:
-        return '<Assoc provider %r spare %r>' %(self.provider_id, self.spare_id)
+        return '<Assoc provider %r spare %r>' %(self.provider_id, self.spare_part_id)
 
     def serialize(self) -> dict:
         return {
@@ -63,17 +63,17 @@ class AssocProviderSpare(db.Model):
         }
 
 
-class AssocSpareAsset(db.Model):
-    __tablename__ = 'assoc_spare_asset'
+class AssetSparePart(db.Model):
+    __tablename__ = 'asset_spare_part'
     id = db.Column(db.Integer, primary_key=True)
-    spare_id = db.Column(db.Integer, db.ForeignKey('spare.id'), nullable=False)
     asset_id = db.Column(db.Integer, db.ForeignKey('asset.id'), nullable=False)
+    spare_part_id = db.Column(db.Integer, db.ForeignKey('spare_part.id'), nullable=False)
     #relations
-    spare = db.relationship('Spare', back_populates='assoc_assets', uselist=False, lazy=True)
-    asset = db.relationship('Asset', back_populates='assoc_spares', uselist=False, lazy=True)
+    asset = db.relationship('Asset', back_populates='asset_spare_parts', uselist=False, lazy=True)
+    spare_part = db.relationship('SparePart', back_populates='asset_spare_parts', uselist=False, lazy=True)
 
     def __repr__(self) -> str:
-        return '<Assoc spare %r asset %r>' %(self.spare_id, self.asset_id)
+        return '<Assoc spare %r asset %r>' %(self.spare_part_id, self.asset_id)
 
     def serialize(self) -> dict:
         return {
@@ -82,10 +82,10 @@ class AssocSpareAsset(db.Model):
 
 
 #helper tables - many 2 many
-wRelation_wOrder = db.Table('wRelation_wOrder', 
-    db.Column('wRelation_id', db.Integer, db.ForeignKey('work_relation.id'), primary_key=True),
-    db.Column('wOrder_id', db.Integer, db.ForeignKey('work_order.id'), primary_key=True)
-)
+# companyUser_workOrder = db.Table('companyuser_workorder', 
+#     db.Column('company_user_id', db.Integer, db.ForeignKey('company_user.id'), primary_key=True),
+#     db.Column('work_order_id', db.Integer, db.ForeignKey('work_order.id'), primary_key=True)
+# )
 
 mPlan_asset = db.Table('mPlan_asset',
     db.Column('mPlan_id', db.Integer, db.ForeignKey('maintenance_plan.id'), primary_key=True),
