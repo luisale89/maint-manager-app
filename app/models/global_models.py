@@ -53,6 +53,7 @@ class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     value = db.Column(db.String(128), nullable=False)
     parent_id = db.Column(db.Integer, db.ForeignKey('category.id'))
+    root_path = db.Column(JSON)
     #relations
     children = db.relationship('Category', cascade="all, delete-orphan", backref=backref('parent', remote_side=id))
 

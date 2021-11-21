@@ -21,6 +21,7 @@ class User(db.Model):
     status = db.Column(db.String(12))
     #relations
     company_users = db.relationship('CompanyUser', back_populates='user', lazy=True)
+    companies = db.relationship('Company', back_populates='user', lazy=True) #companies owned by the user.
 
     def __repr__(self):
         return '<User %r>' % self.id
@@ -58,14 +59,17 @@ class Company(db.Model):
     company_name = db.Column(db.String(128), nullable=False)
     company_address = db.Column(JSON)
     start_date = db.Column(db.DateTime, default=datetime.utcnow)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     #relationships
+    user = db.relationship('User', back_populates='companies', uselist=False, lazy=True) #owner of the company
     company_users = db.relationship('CompanyUser', back_populates='company', lazy=True)
-    spare_parts = db.relationship('SparePart', back_populates='company', lazy=True)
     providers = db.relationship('Provider', back_populates='company', lazy=True)
     assets = db.relationship('Asset', back_populates='company', lazy=True)
     maint_activities = db.relationship('MaintenanceActivity', back_populates='company', lazy=True)
     maint_plans = db.relationship('MaintenancePlan', back_populates='company', lazy=True)
     locations = db.relationship('Location', back_populates='company', lazy=True)
+    spare_parts = db.relationship('SparePart', back_populates='company', lazy=True)
+    supplies = db.relationship('Supply', back_populates='company', lazy=True)
 
     def __repr__(self) -> str:
         return '<Company %r>' % self.id
@@ -87,7 +91,6 @@ class Provider(db.Model):
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     #relations
     company = db.relationship('Company', back_populates='providers', uselist=False, lazy=True)
-    provider_spare_parts = db.relationship('ProviderSparePart', cascade='all, delete-orphan', back_populates='provider', lazy=True)
 
     def __repr__(self) -> str:
         return '<provider %r>' % self.id
@@ -108,7 +111,6 @@ class SparePart(db.Model):
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     #relations
     company = db.relationship('Company', back_populates='spare_parts', uselist=False, lazy=True)
-    provider_spare_parts = db.relationship('ProviderSparePart', cascade='all, delete-orphan', back_populates='spare_part', lazy=True)
     asset_spare_parts = db.relationship('AssetSparePart', cascade='all, delete-orphan', back_populates='spare_part', lazy=True)
 
     def __repr__(self) -> str:
@@ -118,7 +120,29 @@ class SparePart(db.Model):
         return {
             'id': self.id,
             'name': self.name,
-            'description': self.description
+            'description': self.description,
+            'company_id': self.company_id
+        }
+
+
+class Supply(db.Model):
+    __tablename__= 'supply'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(128), nullable=False)
+    description = db.Column(db.Text)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+    #relations
+    company = db.relationship('Company', back_populates='supplies', uselist=False, lazy=True)
+
+    def __repr__(self) -> str:
+        return '<supply %r>' % self.id
+
+    def serialize(self) -> dict:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "company_id": self.company_id
         }
 
 
@@ -127,7 +151,7 @@ class Asset(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), nullable=False)
     description = db.Column(db.Text)
-    asset_type = db.Column(db.String(128), nullable=False) #asset or location
+    asset_type = db.Column(db.String(128), nullable=False) #asset, part or component
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     parent_id = db.Column(db.Integer, db.ForeignKey('asset.id'))
     location_id = db.Column(db.Integer, db.ForeignKey('location.id'))

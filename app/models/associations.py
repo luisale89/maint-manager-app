@@ -26,42 +26,6 @@ class CompanyUser(db.Model):
             "rel_date": self.rel_date,
         }
 
-#!to-delete
-# class AssocProviderWorkorder(db.Model):
-#     __tablename__ = 'assoc_provider_workorder'
-#     id = db.Column(db.Integer, primary_key=True)
-#     provider_id = db.Column(db.Integer, db.ForeignKey('provider.id'), nullable=False)
-#     work_order_id = db.Column(db.Integer, db.ForeignKey('work_order.id'), nullable=False)
-#     #relations
-#     provider = db.relationship('Provider', back_populates='assoc_workorders', uselist=False, lazy=True)
-#     workorder = db.relationship('WorkOrder', back_populates='assoc_providers', uselist=False, lazy=True)
-
-#     def __repr__(self) -> str:
-#         return '<assoc provider %r workorder %r>' %(self.provider_id %self.work_order_id)
-
-#     def serialize(self):
-#         return {
-#             'id': self.id
-#         }
-
-
-class ProviderSparePart(db.Model):
-    __tablename__ = 'provider_spare_part'
-    id = db.Column(db.Integer, primary_key=True)
-    provider_id = db.Column(db.Integer, db.ForeignKey('provider.id'), nullable=False)
-    spare_part_id = db.Column(db.Integer, db.ForeignKey('spare_part.id'), nullable=False)
-    #relations
-    provider = db.relationship('Provider', back_populates='provider_spare_parts', uselist=False, lazy=True)
-    spare_part = db.relationship('SparePart', back_populates='provider_spare_parts', uselist=False, lazy=True)
-
-    def __repr__(self) -> str:
-        return '<Assoc provider %r spare %r>' %(self.provider_id, self.spare_part_id)
-
-    def serialize(self) -> dict:
-        return {
-            "id": self.id
-        }
-
 
 class AssetSparePart(db.Model):
     __tablename__ = 'asset_spare_part'
