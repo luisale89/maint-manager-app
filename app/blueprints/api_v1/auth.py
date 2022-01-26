@@ -81,7 +81,8 @@ def signup():
     q_user = get_user(email)
 
     if q_user:
-        raise APIException("User {} already exists".format(q_user.email), status_code=409)
+        # raise APIException("User {} already exists".format(q_user.email), status_code=409)
+        raise APIException(f"User {q_user.email} already exists", status_code=409)
 
     send_validation_mail({"name": fname, "email": email}) #503 error raised in funct definition
 
