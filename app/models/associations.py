@@ -6,7 +6,7 @@ from datetime import datetime
 class WorkRelation(db.Model):
     __tablename__ = 'work_relation'
     id = db.Column(db.Integer, primary_key=True)
-    rel_date = db.Column(db.DateTime, default=datetime.utcnow)
+    relation_date = db.Column(db.DateTime, default=datetime.utcnow)
     #associations
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
@@ -21,7 +21,7 @@ class WorkRelation(db.Model):
     def serialize(self) -> dict:
         return {
             "id": self.id,
-            "rel_date": self.rel_date,
+            "relation_date": self.relation_date,
         }
 
 

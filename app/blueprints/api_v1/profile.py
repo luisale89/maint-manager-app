@@ -55,7 +55,7 @@ def get_profile():
 @json_required({"fname":str, "lname":str, "home_address":dict, "profile_img":str, "personal_phone":str})
 @jwt_required()
 def update():
-    identity = get_jwt_identity()
+    identity = get_jwt_identity() #identity= user_email
     user = get_user(identity)
     if user is None:
         raise APIException('user', status_code=404)

@@ -1,4 +1,4 @@
-from enum import unique
+from datetime import datetime
 
 from sqlalchemy.orm import backref
 from app.extensions import db
@@ -28,4 +28,38 @@ class TokenBlacklist(db.Model):
             'revoked': self.revoked,
             'revoked_date': self.revoked_date,
             'expires': self.expires
+        }
+
+
+class Roles(db.Model):
+    __tablename__ = "roles"
+    id = db.Column(db.Integer, primery_key=True)
+    name = db.Column(db.String(128))
+    global_role = db.Column(db.Boolean)
+    creation_date = db.Column(db.DateTime, default=datetime.utcnow)
+    creator_user = db.Column(db.Integer)
+
+    def __repr__(self) -> str:
+        return f"<Role {self.name}>"
+
+    def serialize(self) -> dict:
+        return {
+            'name': self.name,
+            'creation_date': self.creation_date
+        }
+
+
+class Permits(db.Model):
+    __tablename__ = "permits"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(128))
+    description = db.Column(db.Text)
+
+    def __repr__(self) -> str:
+        return f'<Permit {self.name}>'
+
+    def serialize(self) -> dict:
+        return {
+            'name': self.name,
+            'description': self.description
         }

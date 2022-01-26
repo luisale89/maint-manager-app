@@ -13,11 +13,11 @@ class User(db.Model):
     password_hash = db.Column(db.String(256), nullable=False)
     fname = db.Column(db.String(128))
     lname = db.Column(db.String(128))
-    profile_img = db.Column(db.String(256))
+    image = db.Column(db.String(256))
     home_address = db.Column(JSON)
-    personal_phone = db.Column(db.String(32))
-    since = db.Column(db.DateTime, default=datetime.utcnow)
-    email_confirm = db.Column(db.Boolean)
+    phone = db.Column(db.String(32))
+    registration_date = db.Column(db.DateTime, default=datetime.utcnow)
+    email_confirmed = db.Column(db.Boolean)
     status = db.Column(db.String(12))
     #relations
     work_relations = db.relationship('WorkRelation', back_populates='user', lazy=True)
@@ -31,8 +31,8 @@ class User(db.Model):
             "id": self.id,
             "fname" : self.fname,
             "lname" : self.lname,
-            "profile_img": self.profile_img if self.profile_img is not None else "https://server.com/default.png",
-            "user_since": self.since,
+            "profile_img": self.image if self.image is not None else "https://server.com/default.png",
+            "registration_date": self.registration_date,
             "user_status": self.status
         }
 
@@ -40,8 +40,8 @@ class User(db.Model):
         return {
             "email": self.email,
             "home_address": self.home_address,
-            "personal_phone": self.personal_phone,
-            "email_confirmed": self.email_confirm
+            "phone": self.phone,
+            "email_confirmed": self.email_confirmed
         }
 
     @property
@@ -56,9 +56,15 @@ class User(db.Model):
 class Company(db.Model):
     __tablename__ = 'company'
     id = db.Column(db.Integer, primary_key=True)
-    company_name = db.Column(db.String(128), nullable=False)
-    company_address = db.Column(JSON)
-    start_date = db.Column(db.DateTime, default=datetime.utcnow)
+    name = db.Column(db.String(128), nullable=False)
+    code = db.Column(db.String(128))
+    image = db.Column(db.String(256))
+    address = db.Column(JSON)
+    contacts = db.Column(JSON)
+    latitude = db.Column(db.Float(precision=8))
+    longitude = db.Column(db.Float(precision=8))
+    registration_date = db.Column(db.DateTime, default=datetime.utcnow)
+
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     #relationships
     work_relations = db.relationship('WorkRelation', back_populates='company', lazy=True)
@@ -69,9 +75,14 @@ class Company(db.Model):
 
     def serialize(self) -> dict:
         return {
-            "name": self.company_name,
-            "address": self.company_address,
-            "start_date": self.start_date
+            "name": self.name,
+            "code": self.code,
+            "image": self.image if self.image is not None else "https://server.com/default.png",
+            "address": self.address,
+            "contacts": self.contacts,
+            "latitude": self.latitude,
+            "longitude": self.longitude,
+            "registration_date": self.registration_date
         }
 
 
@@ -80,20 +91,30 @@ class Location(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), nullable=False)
     description = db.Column(db.Text)
-    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     parent_id = db.Column(db.Integer, db.ForeignKey('location.id'))
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     #relations
     children = db.relationship('Location', cascade="all, delete-orphan", backref=backref('parent', remote_side=id))
     company = db.relationship('Company', back_populates='locations', uselist=False, lazy=True)
-    assets = db.relationship('Asset', back_populates='location', lazy=True)
 
     def __repr__(self) -> str:
         # return '<location %r>' % self.id
         return f"<Location {self.id}>"
 
-    def serialize(self) -> dict:
+    def serialize_tree(self) -> dict:
         return {
-            'id': self.id,
+            ** self.serialize_info,
+            ** self.serialize_children()
+        }
+
+    def serialize_children(self) -> dict:
+        return {
+            'children': list(map(lambda x: x.serialize_tree(), self.children)) if self.children is not None else None
+        }
+
+    def serialize_info(self) -> dict:
+        return {
+            'id':self.id,
             'name': self.name,
             'description': self.description
         }
