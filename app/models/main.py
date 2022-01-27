@@ -31,7 +31,7 @@ class User(db.Model):
             "id": self.id,
             "fname" : self.fname,
             "lname" : self.lname,
-            "profile_img": self.image if self.image is not None else "https://server.com/default.png",
+            "image": self.image if self.image is not None else "https://server.com/default.png",
             "registration_date": self.registration_date,
             "user_status": self.status
         }
@@ -64,8 +64,6 @@ class Company(db.Model):
     latitude = db.Column(db.Float(precision=8))
     longitude = db.Column(db.Float(precision=8))
     registration_date = db.Column(db.DateTime, default=datetime.utcnow)
-
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     #relationships
     work_relations = db.relationship('WorkRelation', back_populates='company', lazy=True)
 
@@ -101,10 +99,11 @@ class Location(db.Model):
         # return '<location %r>' % self.id
         return f"<Location {self.id}>"
 
-    def serialize_tree(self) -> dict:
+    def serialize(self) -> dict:
         return {
-            ** self.serialize_info,
-            ** self.serialize_children()
+            'id':self.id,
+            'name': self.name,
+            'description': self.description
         }
 
     def serialize_children(self) -> dict:
@@ -112,9 +111,8 @@ class Location(db.Model):
             'children': list(map(lambda x: x.serialize_tree(), self.children)) if self.children is not None else None
         }
 
-    def serialize_info(self) -> dict:
+    def serialize_tree(self) -> dict:
         return {
-            'id':self.id,
-            'name': self.name,
-            'description': self.description
+            "id": self.id,
+            ** self.serialize_children()
         }

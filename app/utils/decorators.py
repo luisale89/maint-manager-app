@@ -1,9 +1,8 @@
 import functools
 from flask import (
-    json, session, redirect, url_for, request, abort, jsonify
+    session, redirect, url_for, request
 )
 from flask_jwt_extended import decode_token
-from sqlalchemy.orm import query
 from app.utils.exceptions import (
     APIException
 )

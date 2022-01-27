@@ -40,7 +40,7 @@ def email_validation():
         return render_template('landing/404.html')
     
     try:
-        user_q.email_confirm = True
+        user_q.email_confirmed = True
         db.session.commit()
     except (IntegrityError, DataError) as e:
         db.session.rollback()

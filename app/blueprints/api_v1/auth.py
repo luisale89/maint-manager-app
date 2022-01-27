@@ -1,7 +1,6 @@
-import uuid
 from datetime import datetime
 from flask import (
-    Blueprint, jsonify, request, abort
+    Blueprint, jsonify, request
 )
 #extensions
 from app.extensions import (
@@ -93,7 +92,7 @@ def signup():
             password=password, 
             fname=normalize_names(fname, spaces=True),
             lname=normalize_names(lname, spaces=True),
-            email_confirm=False,
+            email_confirmed=False,
             status='active'
         )
         db.session.add(new_user)
@@ -156,7 +155,7 @@ def login():
         "user": {
             "fname": string,
             "lname": string,
-            "profile_img": url,
+            "image": url,
             "home_address": dict,
             "personal_phone": string,
         }
@@ -189,7 +188,7 @@ def login():
     if user.status is None or user.status != 'active':
         raise APIException("user is not active", status_code=402)
 
-    if not user.email_confirm:
+    if not user.email_confirmed:
         send_validation_mail({"name": user.fname, "email": email}) #error raised in funct definition
 
         raise APIException("user's email not validated", status_code=401)
@@ -223,7 +222,7 @@ def logout():
         GET: si se accede a este endpoint con un GET req. se está solicitando una 
         desconexión en la sesion actual. Si se desea eliminar todas las sesiones
         activas, se debe agregar un parametro a la url en la forma:
-            ?close-all=yes
+            ?close=all
     Raises:
         APIException
 

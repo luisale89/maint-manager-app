@@ -34,7 +34,7 @@ def get_profile():
         "user": {
             "fname": string,
             "lname": string,
-            "profile_img": url,
+            "image": url,
             "home_address": dict,
             "personal_phone": string,
             "user_since": utc-datetime,
@@ -52,7 +52,7 @@ def get_profile():
 
 
 @profile_bp.route('/update', methods=['PUT'])
-@json_required({"fname":str, "lname":str, "home_address":dict, "profile_img":str, "personal_phone":str})
+@json_required({"fname":str, "lname":str, "home_address":dict, "image":str, "personal_phone":str})
 @jwt_required()
 def update():
     identity = get_jwt_identity() #identity= user_email
@@ -61,21 +61,21 @@ def update():
         raise APIException('user', status_code=404)
 
     body = request.get_json(silent=True)
-    fname, lname, home_address, profile_img, personal_phone = \
-    body['fname'], body['lname'], body['home_address'], body['profile_img'], body['personal_phone']
+    fname, lname, home_address, image, personal_phone = \
+    body['fname'], body['lname'], body['home_address'], body['image'], body['personal_phone']
     
     check_validations({
         'fname': only_letters(fname, spaces=True, max_length=128),
         'lname': only_letters(lname, spaces=True, max_length=128)
     })
 
-    if len(profile_img) > 255: #special validation, find out if you needo to do more validations on urls
+    if len(image) > 255: #?special validation, find out if you needo to do more validations on urls
         raise APIException(message="profile img url is too long")
     
     user.fname = normalize_names(fname, spaces=True)
     user.lname = normalize_names(lname, spaces=True)
     user.home_address = home_address
-    user.profile_img = profile_img
+    user.image = image
     user.personal_phone = personal_phone
 
     try:

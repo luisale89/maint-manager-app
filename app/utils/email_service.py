@@ -93,7 +93,7 @@ def send_validation_mail(user:dict=None):
         return {"status_code": 400, "msg": "bad request", "sent": False}
 
     token = create_url_token(identifier=email, salt=email_salt)
-    url_params = "?email={}&token={}".format(email, token)
+    url_params = f"?email={email}&token={token}"
     validation_url = main_frontend_url + url_for('validations_bp.email_validation') + url_params
 
     data = {
