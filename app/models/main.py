@@ -33,6 +33,8 @@ class User(db.Model):
             "lname" : self.lname,
             "image": self.image if self.image is not None else "https://server.com/default.png",
             "registration_date": self.registration_date,
+            "home_address": self.home_address,
+            "phone": self.phone,
             "user_status": self.status
         }
 
@@ -66,6 +68,7 @@ class Company(db.Model):
     registration_date = db.Column(db.DateTime, default=datetime.utcnow)
     #relationships
     work_relations = db.relationship('WorkRelation', back_populates='company', lazy=True)
+    locations = db.relationship('Location', back_populates='company', lazy=True)
 
     def __repr__(self) -> str:
         # return '<Company %r>' % self.id

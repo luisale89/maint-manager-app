@@ -31,9 +31,9 @@ class TokenBlacklist(db.Model):
         }
 
 
-class Roles(db.Model):
-    __tablename__ = "roles"
-    id = db.Column(db.Integer, primery_key=True)
+class Role(db.Model):
+    __tablename__ = "role"
+    id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128))
     global_role = db.Column(db.Boolean)
     creation_date = db.Column(db.DateTime, default=datetime.utcnow)
@@ -49,8 +49,8 @@ class Roles(db.Model):
         }
 
 
-class Permits(db.Model):
-    __tablename__ = "permits"
+class Permit(db.Model):
+    __tablename__ = "permit"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128))
     description = db.Column(db.Text)

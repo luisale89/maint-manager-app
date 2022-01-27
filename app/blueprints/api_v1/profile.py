@@ -36,7 +36,7 @@ def get_profile():
             "lname": string,
             "image": url,
             "home_address": dict,
-            "personal_phone": string,
+            "phone": string,
             "user_since": utc-datetime,
         }
     """
@@ -52,7 +52,7 @@ def get_profile():
 
 
 @profile_bp.route('/update', methods=['PUT'])
-@json_required({"fname":str, "lname":str, "home_address":dict, "image":str, "personal_phone":str})
+@json_required({"fname":str, "lname":str, "home_address":dict, "image":str, "phone":str})
 @jwt_required()
 def update():
     identity = get_jwt_identity() #identity= user_email
@@ -61,8 +61,8 @@ def update():
         raise APIException('user', status_code=404)
 
     body = request.get_json(silent=True)
-    fname, lname, home_address, image, personal_phone = \
-    body['fname'], body['lname'], body['home_address'], body['image'], body['personal_phone']
+    fname, lname, home_address, image, phone = \
+    body['fname'], body['lname'], body['home_address'], body['image'], body['phone']
     
     check_validations({
         'fname': only_letters(fname, spaces=True, max_length=128),
@@ -76,7 +76,7 @@ def update():
     user.lname = normalize_names(lname, spaces=True)
     user.home_address = home_address
     user.image = image
-    user.personal_phone = personal_phone
+    user.phone = phone
 
     try:
         db.session.commit()
