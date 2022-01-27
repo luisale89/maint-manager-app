@@ -257,7 +257,7 @@ def pw_reset():
     su contraseña.
 
     la aplicacion debe recibir el correo electrónico del usuario
-    dentro de los parametros URL ?'email'='value'
+    dentro de los parametros URL ?email=value
 
     la aplicación envía un correo electrónico al usuario que solicita el cambio de contraseña
     y devuelve una respuesta json con el mensaje de exito.

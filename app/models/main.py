@@ -117,5 +117,6 @@ class Location(db.Model):
     def serialize_tree(self) -> dict:
         return {
             "id": self.id,
+            "name": self.name,
             ** self.serialize_children()
         }

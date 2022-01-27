@@ -1,7 +1,8 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from datetime import datetime
 from app.extensions import db
 from app.models.global_models import TokenBlacklist
+from app.models.main import Location
 
 
 admin_bp = Blueprint('admin_bp', __name__)
@@ -19,3 +20,11 @@ def prune_db():
         db.session.delete(token)
     db.session.commit()
     return jsonify({"success": "db pruned correctly"}), 200
+
+
+@admin_bp.route('/get-locations-tree', methods=['GET'])
+def locations_tree():
+    location_id = str(request.args.get('location'))
+    location = Location.query.get(location_id)
+
+    return jsonify(location.serialize_tree()), 200
