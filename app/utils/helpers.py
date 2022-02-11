@@ -92,11 +92,19 @@ class JSONResponse():
 
     - message: Mesanje a mostrar al usuario.
     - app_status = "success", "error"
-    - payload = dict con cualquier informacion adicional que se necesite enviar al usuario.
+    - status_code = http status code
+    - payload = dict con cualquier informacion que se necesite enviar al usuario.
+
+    methods:
+
+    - serialize() -> return dict
+    - to_json() -> http JSON response
+
     '''
 
-    def __init__(self, message, app_status="success", payload=None):
+    def __init__(self, message, app_status="success", status_code=200, payload=None):
         self.app_status = app_status
+        self.status_code = status_code
         self.data = payload
         self.message = message
 
@@ -104,6 +112,9 @@ class JSONResponse():
         rv = {
             "status": self.app_status,
             "data": dict(self.data or ()),
-            "message": self.message
+            "message": self.message #for debug in frontend
         }
         return rv
+
+    def to_json(self):
+        return jsonify(self.serialize()), self.status_code

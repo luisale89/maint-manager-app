@@ -1,22 +1,12 @@
+from sqlalchemy import JSON
+from helpers import JSONResponse
 
-class APIException(Exception):
-    status_code = 400
+class APIException(Exception, JSONResponse):
 
-    def __init__(self, message, app_status="error", status_code=None, payload=None):
+    def __init__(self, message, app_status="error", status_code=400, payload=None): #default code 400
+
         Exception.__init__(self)
-        self.message = message
-        if status_code is not None:
-            self.status_code = status_code
-        self.data = payload
-        self.app_status = app_status
-
-    def to_dict(self):
-        rv = {
-            "status": self.app_status,
-            "data": dict(self.data or ()),
-            "message": self.message
-        }
-        return rv
+        JSONResponse.__init__(self, message, app_status, status_code, payload)
 
 
 class TokenNotFound(Exception):

@@ -1,4 +1,5 @@
 from datetime import datetime
+from urllib import response
 from flask import (
     Blueprint, jsonify, request
 )
@@ -102,8 +103,8 @@ def signup():
         raise APIException(e.orig.args[0], status_code=422) # integrityError or DataError info
 
     #?response
-    rsp = JSONResponse(message="New user created, email validation required")
-    return jsonify(rsp.serialize()), 201
+    response = JSONResponse(message="New user created, email validation required", status_code=201)
+    return response.to_json()
 
 
 @auth_bp.route('/email-query', methods=['GET']) #email
@@ -137,8 +138,8 @@ def email_query():
             "user not found in database", 
             status_code=404,
         )
-    rsp = JSONResponse(message="user exists in database")
-    return jsonify(rsp.serialize()), 200
+    response = JSONResponse(message="user exists in database")
+    return response.to_json()
 
 
 @auth_bp.route('/login', methods=['POST']) #normal login
@@ -182,15 +183,13 @@ def login():
     if user is None:
         raise APIException("user email not found in database", status_code=404)
 
-    if not check_password_hash(user.password_hash, pw):
-        raise APIException("wrong password", status_code=403)
-
     if user.status is None or user.status != 'active':
         raise APIException("user is not active", status_code=402)
 
-    if not user.email_confirmed:
-        send_validation_email({"name": user.fname, "email": email}) #error raised in funct definition
+    if not check_password_hash(user.password_hash, pw):
+        raise APIException("wrong password", status_code=403)
 
+    if not user.email_confirmed:
         raise APIException("user's email not validated", status_code=401)
     
     # additional_claims = {"w_relation": w_relation.id}
@@ -198,14 +197,16 @@ def login():
     add_token_to_database(access_token)
 
     #?response
-    rsp = JSONResponse(
+    response = JSONResponse(
         message="user logged in",
         payload={
             "user": user.serialize(),
             "access_token": access_token
-        }
+        },
+        status_code=200
     )
-    return jsonify(rsp.serialize()), 200
+
+    return response.to_json()
 
 
 @auth_bp.route('/logout', methods=['GET']) #logout user
@@ -235,16 +236,16 @@ def logout():
 
     if close == 'all':
         revoke_all_jwt(user_identity)
-        rsp = JSONResponse("user logged-out of all active sessions")
-        return jsonify(rsp.serialize()), 200
+        response = JSONResponse("user logged-out of all active sessions")
+        return response.to_json()
     else:
         token_info = decode_token(request.headers.get('authorization').replace("Bearer ", ""))
         db_token = TokenBlacklist.query.filter_by(jti=token_info['jti']).first()
         db_token.revoked = True
         db_token.revoked_date = datetime.utcnow()
         db.session.commit()
-        rsp = JSONResponse("user logged-out of current session")
-        return jsonify(rsp.serialize()), 200
+        response = JSONResponse("user logged-out of current session")
+        return response.to_json()
 
 
 @auth_bp.route('/password-reset', methods=['GET']) #endpoint to restart password
@@ -279,5 +280,6 @@ def pw_reset():
         raise APIException("user not found in database", status_code=404)
 
     send_pwchange_email({"name": user.fname, "email": user.email})
-    rsp = JSONResponse("validation email sent to user")
-    return jsonify(rsp.serialize()), 200
+    response = JSONResponse("validation email sent to user")
+
+    return response.to_json()

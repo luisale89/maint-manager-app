@@ -71,8 +71,9 @@ def handle_not_allowed(e):
         flash(str(e))
         return render_template('landing/404.html'), 405 #!desarrollar template para 405
 
-def handle_API_Exception(error):
-    return jsonify(error.to_dict()), error.status_code
+def handle_API_Exception(exception):
+    # return jsonify(error.to_dict()), error.status_code
+    return exception.to_json()
 
 
 #callbacks
