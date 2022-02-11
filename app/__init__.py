@@ -23,27 +23,6 @@ from app.utils.helpers import JSONResponse
 from app.models.global_models import (TokenBlacklist)
 
 
-def handle_not_found(e):
-    ''' Función que permite devolver 404 en json para solicitud de 
-    API y html para solicitud desde un navegador web '''
-    if request.path.startswith("/api"):
-        return jsonify(error=str(e)), 404
-    else:
-        flash(str(e))
-        return render_template('landing/404.html'), 404
-
-def handle_not_allowed(e):
-    ''' Función que permite devolver 405 en json para solicitud de 
-    API y html para solicitud desde un navegador web '''
-    if request.path.startswith("/api"):
-        return jsonify(error=str(e)), 405
-    else:
-        flash(str(e))
-        return render_template('landing/404.html'), 405 #!desarrollar template para 405
-
-def handle_API_Exception(error):
-    return jsonify(error.to_dict()), error.status_code
-
 def create_app(test_config=None):
     ''' Application-Factory Pattern '''
     app = Flask(__name__)
@@ -72,6 +51,29 @@ def create_app(test_config=None):
     app.register_blueprint(maintenance.admin_bp, url_prefix='/api/v1/maintenance')
 
     return app
+
+
+def handle_not_found(e):
+    ''' Función que permite devolver 404 en json para solicitud de 
+    API y html para solicitud desde un navegador web '''
+    if request.path.startswith("/api"):
+        return jsonify(error=str(e)), 404
+    else:
+        flash(str(e))
+        return render_template('landing/404.html'), 404
+
+def handle_not_allowed(e):
+    ''' Función que permite devolver 405 en json para solicitud de 
+    API y html para solicitud desde un navegador web '''
+    if request.path.startswith("/api"):
+        return jsonify(error=str(e)), 405
+    else:
+        flash(str(e))
+        return render_template('landing/404.html'), 405 #!desarrollar template para 405
+
+def handle_API_Exception(error):
+    return jsonify(error.to_dict()), error.status_code
+
 
 #callbacks
 @jwt.token_in_blocklist_loader

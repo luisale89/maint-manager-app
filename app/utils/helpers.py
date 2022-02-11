@@ -86,6 +86,15 @@ def normalize_names(name: str, spaces=False) -> str:
 
 class JSONResponse():
 
+    '''
+    Class
+    Genera mensaje de respuesta a las solicitudes JSON. los parametros son:
+
+    - message: Mesanje a mostrar al usuario.
+    - app_status = "success", "error"
+    - payload = dict con cualquier informacion adicional que se necesite enviar al usuario.
+    '''
+
     def __init__(self, message, app_status="success", payload=None):
         self.app_status = app_status
         self.data = payload
