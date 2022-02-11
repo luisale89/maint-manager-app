@@ -41,7 +41,7 @@ def json_required(required:dict=None, query_params:bool=False):
                     missing = [r for r in required.keys() if r not in _json]
 
                 if missing:
-                    raise APIException("Missing arguments in {}".format("url" if query_params else "request"), payload={"missing": missing})
+                    raise APIException(f"Missing arguments in {'url' if query_params is True else 'query params'}", payload={"missing": missing})
                 
                 wrong_types = [r for r in required.keys() if not isinstance(_json[r], required[r])] if _json is not None else None
                 if wrong_types:

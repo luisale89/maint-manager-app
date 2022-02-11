@@ -75,7 +75,7 @@ def only_letters(string:str, spaces:bool=False, max_length:int=64) -> dict:
     return {"error": False, "msg": "ok"}
 
 
-def check_validations(valid:dict):
+def validate_inputs(inputs:dict):
     '''function para validar que no existe errores en el diccionario "valid"
     Args: 
         *Dict en formato: 
@@ -91,14 +91,15 @@ def check_validations(valid:dict):
     
     error = []
     msg = {}
-    if not isinstance(valid, dict):
+    if not isinstance(inputs, dict):
         raise TypeError("Invalid argument format, dict is expected")
-    for r in valid.keys():
-        if valid[r]['error']: 
+    for r in inputs.keys():
+        if inputs[r]['error']: 
             error.append(r)
-            msg[r] = valid[r]['msg']
+            msg[r] = inputs[r]['msg']
 
     if error:
-        raise APIException("invalid inputs in request", payload={'invalid': error, 'msg': msg})
+        # raise APIException("invalid inputs in request", payload={'invalid': error, 'msg': msg})
+        raise APIException("invalid input in request", payload={'invalid': error, 'msg': msg})
 
     pass

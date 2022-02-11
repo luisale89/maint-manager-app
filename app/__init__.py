@@ -1,25 +1,26 @@
 import os
-from flask import Flask, app, json, jsonify, request, render_template, flash
-
+from flask import Flask, jsonify, request, render_template, flash
+#blueprints
 from app.blueprints.api_v1 import (
     auth, profile, maintenance
 )
-
 from app.blueprints.landing import (
     landing, validations
 )
-
 from app.blueprints.db_amin.db_admin import db_admin_bp #!development only
 
+#extensions
 from app.extensions import (
     assets, migrate, jwt, db, cors, admin
 )
 
+#utils
 from app.utils.exceptions import (
     APIException
 )
 from app.utils.helpers import JSONResponse
 
+#models
 from app.models.global_models import (TokenBlacklist)
 
 

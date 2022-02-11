@@ -1,4 +1,5 @@
 
+from urllib import response
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import (
     jwt_required, get_jwt_identity
@@ -14,7 +15,7 @@ from app.utils.helpers import (
     normalize_names, get_user_by_email, JSONResponse
 )
 from app.utils.validations import (
-    check_validations,
+    validate_inputs,
     only_letters
 )
 from app.utils.decorators import json_required
@@ -43,12 +44,16 @@ def get_profile():
     identity = get_jwt_identity()
     user = get_user_by_email(identity) #get_jwt_indentity get the user id from jwt.
     if user is None:
-        raise APIException("not_found", status_code=404)
+        raise APIException(f"user {identity} not found", status_code=404)
 
-    rsp = JSONResponse(message="user profile", payload={
-        "user": user.serialize(), "identity": identity
-    })
-    return jsonify(rsp.serialize()), 200
+    response = JSONResponse(
+        message="user profile", 
+        payload={
+            "user": user.serialize(), 
+            "identity": identity
+        })
+
+    return response.to_json()
 
 
 @profile_bp.route('/update', methods=['PUT'])
@@ -64,13 +69,13 @@ def update():
     fname, lname, home_address, image, phone = \
     body['fname'], body['lname'], body['home_address'], body['image'], body['phone']
     
-    check_validations({
+    validate_inputs({
         'fname': only_letters(fname, spaces=True, max_length=128),
         'lname': only_letters(lname, spaces=True, max_length=128)
     })
 
     if len(image) > 255: #?special validation, find out if you needo to do more validations on urls
-        raise APIException(message="profile img url is too long")
+        raise APIException("profile img url is too long")
     
     user.fname = normalize_names(fname, spaces=True)
     user.lname = normalize_names(lname, spaces=True)
@@ -84,5 +89,5 @@ def update():
         db.session.rollback()
         raise APIException(e.orig.args[0], status_code=422) # integrityError or DataError info
     
-    rsp = JSONResponse(message="user's profile updated", payload={"user": user.serialize()})
-    return jsonify(rsp.serialize()), 200
+    response = JSONResponse(message="user's profile updated", payload={"user": user.serialize()})
+    return response.to_json()

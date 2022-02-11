@@ -44,6 +44,7 @@ def smtp_api_request(data:dict, debug:dict) -> dict:
     except HTTPError:
         return {"msg": r.json(), "sent": False}
 
+
 def send_transactional_email(params:dict={}, recipients:list=None, sender:dict=None, subject:str=None) -> dict:
     '''
     función para enviar a través de una solicitud http a la api del servidor smtp un correo
@@ -104,7 +105,7 @@ def send_validation_email(user:dict=None):
     }
     rsp = smtp_api_request(data=data, debug={"link": validation_url})
     if not rsp['sent']:
-        raise APIException("fail on sending validation email to user, msg: '{}'".format(rsp['msg']), status_code=503)
+        raise APIException(f"fail on sending validation email to user, provider msg: {rsp['msg']}", status_code=503)
 
     pass
 
@@ -136,6 +137,6 @@ def send_pwchange_email(user:dict=None):
 
     rsp = smtp_api_request(data=data, debug={"link":validation_url})
     if not rsp['sent']:
-        raise APIException("fail on sending validation email to user, msg: '{}'".format(rsp['msg']), status_code=503)
+        raise APIException(f"fail on sending validation email to user, provider msg: {rsp['msg']}", status_code=503)
 
     pass

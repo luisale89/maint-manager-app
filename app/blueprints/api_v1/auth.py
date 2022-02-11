@@ -30,7 +30,7 @@ from app.utils.helpers import (
     normalize_names, add_token_to_database, get_user_by_email, revoke_all_jwt, JSONResponse
 )
 from app.utils.validations import (
-    validate_email, validate_pw, only_letters, check_validations
+    validate_email, validate_pw, only_letters, validate_inputs
 )
 from app.utils.email_service import (
     send_validation_email, send_pwchange_email
@@ -71,7 +71,7 @@ def signup():
 
     body = request.get_json(silent=True)
     email, password, fname, lname = body['email'].lower(), body['password'], body['fname'], body['lname']
-    check_validations({
+    validate_inputs({
         'email': validate_email(email),
         'password': validate_pw(password),
         'fname': only_letters(fname, spaces=True),
@@ -125,7 +125,7 @@ def email_query():
     """
 
     email = str(request.args.get('email'))
-    check_validations({
+    validate_inputs({
         'email': validate_email(email)
     })
 
@@ -173,7 +173,7 @@ def login():
     body = request.get_json(silent=True)
     email, pw = body['email'].lower(), body['password']
 
-    check_validations({ #raise a 400 error
+    validate_inputs({ #raise a 400 error
         'email': validate_email(email),
         'password': validate_pw(pw)
     })
