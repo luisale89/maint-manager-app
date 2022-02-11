@@ -99,7 +99,6 @@ def validate_inputs(inputs:dict):
             msg[r] = inputs[r]['msg']
 
     if error:
-        # raise APIException("invalid inputs in request", payload={'invalid': error, 'msg': msg})
         raise APIException("invalid input in request", payload={'invalid': error, 'msg': msg})
 
     pass

@@ -85,6 +85,10 @@ def handle_API_Exception(exception): #exception == APIException
 @jwt.token_in_blocklist_loader
 def check_if_token_revoked(jwt_header, jwt_payload):
     jti = jwt_payload['jti']
+
+    if jwt_payload.get('verification_code') is not None:
+        return False
+
     token = TokenBlacklist.query.filter_by(jti=jti).first()
     if token is None:
         return True

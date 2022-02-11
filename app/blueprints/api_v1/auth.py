@@ -1,7 +1,9 @@
-from datetime import datetime
-from urllib import response
+from crypt import methods
+import datetime
+from random import randint
+
 from flask import (
-    Blueprint, jsonify, request
+    Blueprint, request
 )
 #extensions
 from app.extensions import (
@@ -23,7 +25,7 @@ from app.utils.exceptions import APIException
 from werkzeug.security import check_password_hash
 from flask_jwt_extended import (
     create_access_token, jwt_required, 
-    get_jwt_identity, decode_token
+    get_jwt_identity, decode_token, get_jwt
 )
 #utils
 from app.utils.helpers import (
@@ -33,7 +35,7 @@ from app.utils.validations import (
     validate_email, validate_pw, only_letters, validate_inputs
 )
 from app.utils.email_service import (
-    send_validation_email, send_pwchange_email
+    send_verification_email
 )
 from app.utils.decorators import (
     json_required
@@ -83,8 +85,6 @@ def signup():
     if q_user:
         # raise APIException("User {} already exists".format(q_user.email), status_code=409)
         raise APIException(f"User {q_user.email} already exists", status_code=409)
-
-    send_validation_email({"name": fname, "email": email}) #503 error raised in funct definition
 
     #?processing
     try:
@@ -279,7 +279,65 @@ def pw_reset():
     if user is None:
         raise APIException("user not found in database", status_code=404)
 
-    send_pwchange_email({"name": user.fname, "email": user.email})
+    # send_pwchange_email({"name": user.fname, "email": user.email})
     response = JSONResponse("validation email sent to user")
 
+    return response.to_json()
+
+
+@auth_bp.route('/verification-code-request', methods=['GET'])
+@json_required({'email':str}, query_params=True)
+def verification_code_request():
+    '''
+    Endpoint to request a new verification code to restar the password or to validate a user email.
+    '''
+    email = str(request.args.get('email'))
+    validate_inputs({
+        'email': validate_email(email)
+    })
+
+    #?processing
+    user = get_user_by_email(email)
+
+    #response
+    if user is None:
+        raise APIException('User not found in database', status_code=404)
+
+    random_code = randint(100000, 999999)
+    token_expire_time = datetime.timedelta(days=1)
+    token = create_access_token(identity=email, additional_claims={'verification_code': random_code}, expires_delta=token_expire_time)
+
+    send_verification_email(verification_code=random_code, user={'fname': user.fname, 'email': user.email}) #503 error raised in funct definition
+
+    response = JSONResponse(
+        'verification code sent to user', 
+        payload={
+            'user_fname': user.fname,
+            'user_lname': user.lname,
+            'user_email': user.email,
+            'verification_token': token,
+            'token_expires': str(token_expire_time)
+    })
+
+    return response.to_json()
+
+#!REVISAR Y DEBUGEAR CODIGO
+@auth_bp.route('/verification-code-check', methods=['POST'])
+@json_required({'code':str})
+@jwt_required()
+def verification_code_check():
+
+    body = request.get_json(silent=True)
+    claims = get_jwt()
+    user = get_jwt_identity()
+
+    if (body['code'] != str(claims['verification_code'])):
+        raise APIException("invalid verification code")
+    
+    response = JSONResponse("test", payload={
+        "rq_body": body,
+        "jwt_claims": claims,
+        "user": user
+    })
+    
     return response.to_json()
