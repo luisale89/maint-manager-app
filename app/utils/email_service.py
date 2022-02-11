@@ -78,7 +78,7 @@ def send_transactional_email(params:dict={}, recipients:list=None, sender:dict=N
     return smtp_api_request(data)
 
 
-def send_validation_mail(user:dict=None):
+def send_validation_email(user:dict=None):
     '''
     función para enviar a través de una solicitud http a la api del servidor smtp un correo
     electrónico de validacion. Estos son los parámetros requeridos:
@@ -109,7 +109,7 @@ def send_validation_mail(user:dict=None):
     pass
 
 
-def send_pwchange_mail(user:dict=None):
+def send_pwchange_email(user:dict=None):
     '''
     función para enviar a través de una solicitud http a la api del servidor smtp un correo
     electrónico de validacion. Estos son los parámetros requeridos:

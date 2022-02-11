@@ -4,7 +4,7 @@ from flask import (
 )
 #utils
 from app.utils.helpers import (
-    get_user, revoke_all_jwt
+    get_user_by_email, revoke_all_jwt
 )
 from app.utils.validations import (
     validate_pw
@@ -34,7 +34,7 @@ def email_validation():
         flash('invalid token')
         return render_template('landing/404.html')
 
-    user_q = get_user(email)
+    user_q = get_user_by_email(email)
     if user_q is None:
         flash('username not found')
         return render_template('landing/404.html')
@@ -100,7 +100,7 @@ def pw_reset():
     if pw != repw:
         error['re_password'] = "Contraseñas no coinciden"
     
-    user_q = get_user(email)
+    user_q = get_user_by_email(email)
     if user_q is None:
         flash("Usuario {} no existe en la base de datos".format(email))
         return render_template('landing/404.html')

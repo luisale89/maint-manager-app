@@ -26,13 +26,13 @@ from flask_jwt_extended import (
 )
 #utils
 from app.utils.helpers import (
-    normalize_names, add_token_to_database, get_user, revoke_all_jwt, JSONResponse
+    normalize_names, add_token_to_database, get_user_by_email, revoke_all_jwt, JSONResponse
 )
 from app.utils.validations import (
     validate_email, validate_pw, only_letters, check_validations
 )
 from app.utils.email_service import (
-    send_validation_mail, send_pwchange_mail
+    send_validation_email, send_pwchange_email
 )
 from app.utils.decorators import (
     json_required
@@ -77,13 +77,13 @@ def signup():
         'lname': only_letters(lname, spaces=True)
     })
 
-    q_user = get_user(email)
+    q_user = get_user_by_email(email)
 
     if q_user:
         # raise APIException("User {} already exists".format(q_user.email), status_code=409)
         raise APIException(f"User {q_user.email} already exists", status_code=409)
 
-    send_validation_mail({"name": fname, "email": email}) #503 error raised in funct definition
+    send_validation_email({"name": fname, "email": email}) #503 error raised in funct definition
 
     #?processing
     try:
@@ -129,7 +129,7 @@ def email_query():
     })
 
     #?processing
-    user = get_user(email)
+    user = get_user_by_email(email)
     
     #?response
     if user is None:
@@ -178,7 +178,7 @@ def login():
     })
 
     #?processing
-    user = get_user(email)
+    user = get_user_by_email(email)
     if user is None:
         raise APIException("user email not found in database", status_code=404)
 
@@ -189,7 +189,7 @@ def login():
         raise APIException("user is not active", status_code=402)
 
     if not user.email_confirmed:
-        send_validation_mail({"name": user.fname, "email": email}) #error raised in funct definition
+        send_validation_email({"name": user.fname, "email": email}) #error raised in funct definition
 
         raise APIException("user's email not validated", status_code=401)
     
@@ -272,12 +272,12 @@ def pw_reset():
     validate_email(email)
 
     #?processing
-    user = get_user(email)
+    user = get_user_by_email(email)
 
     #?response
     if user is None:
         raise APIException("user not found in database", status_code=404)
 
-    send_pwchange_mail({"name": user.fname, "email": user.email})
+    send_pwchange_email({"name": user.fname, "email": user.email})
     rsp = JSONResponse("validation email sent to user")
     return jsonify(rsp.serialize()), 200

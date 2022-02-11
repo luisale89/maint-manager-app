@@ -11,7 +11,7 @@ from sqlalchemy.exc import (
 #utils
 from app.utils.exceptions import APIException
 from app.utils.helpers import (
-    normalize_names, get_user, JSONResponse
+    normalize_names, get_user_by_email, JSONResponse
 )
 from app.utils.validations import (
     check_validations,
@@ -41,7 +41,7 @@ def get_profile():
         }
     """
     identity = get_jwt_identity()
-    user = get_user(identity) #get_jwt_indentity get the user id from jwt.
+    user = get_user_by_email(identity) #get_jwt_indentity get the user id from jwt.
     if user is None:
         raise APIException("not_found", status_code=404)
 
@@ -56,7 +56,7 @@ def get_profile():
 @jwt_required()
 def update():
     identity = get_jwt_identity() #identity= user_email
-    user = get_user(identity)
+    user = get_user_by_email(identity)
     if user is None:
         raise APIException('user', status_code=404)
 

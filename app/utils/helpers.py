@@ -18,7 +18,7 @@ def _epoch_utc_to_datetime(epoch_utc):
     return datetime.fromtimestamp(epoch_utc)
 
 
-def get_user(email):
+def get_user_by_email(email):
     '''
     Helper function to get user from db, email parameter is required
     '''

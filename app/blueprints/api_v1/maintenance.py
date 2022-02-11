@@ -3,6 +3,9 @@ from datetime import datetime
 from app.extensions import db
 from app.models.global_models import TokenBlacklist
 from app.models.main import Location
+from app.utils.decorators import (
+    json_required
+)
 
 
 admin_bp = Blueprint('admin_bp', __name__)
@@ -21,10 +24,17 @@ def prune_db():
     db.session.commit()
     return jsonify({"success": "db pruned correctly"}), 200
 
-
-@admin_bp.route('/get-locations-tree', methods=['GET'])
+#!TEST
+@admin_bp.route('/get-locations', methods=['GET'])
+@json_required()
 def locations_tree():
     location_id = str(request.args.get('location'))
     location = Location.query.get(location_id)
 
-    return jsonify(location.serialize_tree()), 200
+    return jsonify({**location.serialize(), **location.serialize_children()}), 200
+
+
+# @admin_bp.route('/create-location', methods=['POST'])
+# @json_required()
+# def create_location():
+#     body = request.get_json(silent=True)

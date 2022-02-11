@@ -92,6 +92,7 @@ class Location(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), nullable=False)
     description = db.Column(db.Text)
+    path = db.Column(JSON) #codigo para identificar la ruta desde el nodo padre hasta la raiz del arbol
     parent_id = db.Column(db.Integer, db.ForeignKey('location.id'))
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     #relations
@@ -105,18 +106,14 @@ class Location(db.Model):
     def serialize(self) -> dict:
         return {
             'id':self.id,
+            'parent_id': self.parent_id,
             'name': self.name,
-            'description': self.description
+            'path': 'root>' + '>'.join(str(e) for e in self.path) if self.path is not None else 'root>', #!TEST node_1>node2>node5...
+            'description': self.description,
+            'number_of_children': len(self.children)
         }
 
     def serialize_children(self) -> dict:
         return {
-            'children': list(map(lambda x: x.serialize_tree(), self.children)) if self.children is not None else None
-        }
-
-    def serialize_tree(self) -> dict:
-        return {
-            "id": self.id,
-            "name": self.name,
-            ** self.serialize_children()
+            'children': list(map(lambda x: x.serialize(), self.children))
         }
