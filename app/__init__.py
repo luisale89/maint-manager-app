@@ -56,26 +56,30 @@ def create_app(test_config=None):
 
 def handle_not_found(e):
     ''' Función que permite devolver 404 en json para solicitud de 
-    API y html para solicitud desde un navegador web '''
-    if request.path.startswith("/api"):
-        return jsonify(error=str(e)), 404
+    API y html para solicitud desde un navegador web 
+    '''
+
+    if request.is_json:
+        response = JSONResponse(message=str(e), app_status='error', status_code=404)
+        return response.to_json()
     else:
         flash(str(e))
         return render_template('landing/404.html'), 404
 
+
 def handle_not_allowed(e):
     ''' Función que permite devolver 405 en json para solicitud de 
     API y html para solicitud desde un navegador web '''
-    if request.path.startswith("/api"):
-        return jsonify(error=str(e)), 405
+    if request.is_json:
+        response = JSONResponse(message=str(e), app_status='error', status_code=405)
+        return response.to_json()
     else:
         flash(str(e))
         return render_template('landing/404.html'), 405 #!desarrollar template para 405
 
-def handle_API_Exception(exception):
-    # return jsonify(error.to_dict()), error.status_code
-    return exception.to_json()
 
+def handle_API_Exception(exception): #exception == APIException
+    return exception.to_json()
 
 #callbacks
 @jwt.token_in_blocklist_loader
@@ -94,9 +98,10 @@ def expired_token_msg(jwt_header, jwt_payload):
     rsp = JSONResponse(
         message="token has been revoked or has expired",
         app_status="error",
-        payload={"invalid": "token revoked"}
+        payload={"invalid": "jwt-token"}
     )
     return jsonify(rsp.serialize()), 403
+
 
 @jwt.invalid_token_loader
 def invalid_token_msg(error):
@@ -106,6 +111,7 @@ def invalid_token_msg(error):
         payload={"invalid": ["jwt"]}
     )
     return jsonify(rsp.serialize()), 400
+
 
 @jwt.unauthorized_loader
 def missing_token_msg(error):

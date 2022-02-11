@@ -110,7 +110,7 @@ class JSONResponse():
 
     def serialize(self):
         rv = {
-            "status": self.app_status,
+            "result": self.app_status,
             "data": dict(self.data or ()),
             "message": self.message #for debug in frontend
         }
