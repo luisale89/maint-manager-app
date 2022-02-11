@@ -173,7 +173,7 @@ def login():
     body = request.get_json(silent=True)
     email, pw = body['email'].lower(), body['password']
 
-    validate_inputs({ #raise a 400 error
+    validate_inputs({
         'email': validate_email(email),
         'password': validate_pw(pw)
     })

@@ -1,5 +1,5 @@
 from sqlalchemy import JSON
-from helpers import JSONResponse
+from .helpers import JSONResponse
 
 class APIException(Exception, JSONResponse):
 
