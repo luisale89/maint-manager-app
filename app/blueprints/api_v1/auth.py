@@ -266,7 +266,7 @@ def verification_code_request():
         raise APIException('User not found in database', status_code=404)
 
     random_code = randint(100000, 999999)
-    token_expire_time = datetime.timedelta(days=1)
+    token_expire_time = datetime.timedelta(hours=1)
     token = create_access_token(
         identity=email, 
         additional_claims={
@@ -290,23 +290,20 @@ def verification_code_request():
 
     return response.to_json()
 
-#!REVISAR Y DEBUGEAR CODIGO
-@auth_bp.route('/verification-code-check', methods=['POST'])
-@json_required({'code':str})
+
+@auth_bp.route('/verification-code-check', methods=['PUT'])
+@json_required({'verification_code':int})
 @jwt_required()
 def verification_code_check():
 
-    body = request.get_json(silent=True)
-    claims = get_jwt()
-    user = get_jwt_identity()
+    # body = request.get_json(silent=True)
+    # claims = get_jwt()
+    code_in_request = request.get_json().get('verification_code')
+    code_in_token = get_jwt().get('verification_code')
 
-    if (body['code'] != str(claims['verification_code'])):
+    if (code_in_request != code_in_token):
         raise APIException("invalid verification code")
     
-    response = JSONResponse("test", payload={
-        "rq_body": body,
-        "jwt_claims": claims,
-        "user": user
-    })
+    resp = JSONResponse("code verification success")
     
-    return response.to_json()
+    return resp.to_json()
