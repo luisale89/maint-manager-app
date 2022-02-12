@@ -305,7 +305,14 @@ def verification_code_request():
 
     random_code = randint(100000, 999999)
     token_expire_time = datetime.timedelta(days=1)
-    token = create_access_token(identity=email, additional_claims={'verification_code': random_code}, expires_delta=token_expire_time)
+    token = create_access_token(
+        identity=email, 
+        additional_claims={
+            'verification_code': random_code,
+            'verification_token': True
+        }, 
+        expires_delta=token_expire_time
+    )
 
     send_verification_email(verification_code=random_code, user={'fname': user.fname, 'email': user.email}) #503 error raised in funct definition
 

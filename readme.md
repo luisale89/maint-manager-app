@@ -42,4 +42,3 @@ SMTP_API_KEY="APIKEY" --> SMPT api key
 SMTP_API_URL="smtp_api_url" --> SMPT api url
 MAIL_MODE="development" || "production" -> to send email with smpt service
 EMAIL_VALID_SALT="email-validation" --> required to encode url tokens
-PW_VALID_SALT="password-reset" --> required to encode url tokens

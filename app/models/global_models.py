@@ -1,7 +1,6 @@
-from datetime import datetime
-
-from sqlalchemy.orm import backref
 from app.extensions import db
+from datetime import datetime
+from sqlalchemy.orm import backref
 from sqlalchemy.dialects.postgresql import JSON
 
 
