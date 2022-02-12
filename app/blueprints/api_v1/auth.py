@@ -1,4 +1,3 @@
-from crypt import methods
 import datetime
 from random import randint
 
@@ -104,41 +103,6 @@ def signup():
 
     #?response
     response = JSONResponse(message="New user created, email validation required", status_code=201)
-    return response.to_json()
-
-
-@auth_bp.route('/email-query', methods=['GET']) #email
-@json_required({"email":str}, query_params=True) #validate inputs
-def email_query():
-    """
-    * PUBLIC ENDPOINT *
-    requerido: query string with email: ?email=xx@xx.com
-    respuesta: {
-        email_exists: bool === False if email is not found in db
-        user: dict, => user info, if email exists
-    }
-    raised status codes {
-        inputs error: 400,
-        user not found: 404,
-        user exists in app: 200
-    }
-    """
-
-    email = str(request.args.get('email'))
-    validate_inputs({
-        'email': validate_email(email)
-    })
-
-    #?processing
-    user = get_user_by_email(email)
-    
-    #?response
-    if user is None:
-        raise APIException(
-            "user not found in database", 
-            status_code=404,
-        )
-    response = JSONResponse(message="user exists in database")
     return response.to_json()
 
 
@@ -248,40 +212,38 @@ def logout():
         return response.to_json()
 
 
-@auth_bp.route('/password-reset', methods=['GET']) #endpoint to restart password
-@json_required({"email":str}, query_params=True)
-def pw_reset():
+@auth_bp.route('/email-query', methods=['GET']) #email
+@json_required({"email":str}, query_params=True) #validate inputs
+def email_query():
     """
     * PUBLIC ENDPOINT *
-
-    Endpoint utiliza ItsDangerous y send_email para que el usuario pueda reestablecer
-    su contraseña.
-
-    la aplicacion debe recibir el correo electrónico del usuario
-    dentro de los parametros URL ?email=value
-
-    la aplicación envía un correo electrónico al usuario que solicita el cambio de contraseña
-    y devuelve una respuesta json con el mensaje de exito.
-    
-    raised errors {
-        inputs error: 400
-        user not found in database: 404,
-        smtp service error: 503, (raised in function definition)
+    requerido: query string with email: ?email=xx@xx.com
+    respuesta: {
+        email_exists: bool === False if email is not found in db
+        user: dict, => user info, if email exists
     }
-    """    
+    raised status codes {
+        inputs error: 400,
+        user not found: 404,
+        user exists in app: 200
+    }
+    """
+
     email = str(request.args.get('email'))
-    validate_email(email)
+    validate_inputs({
+        'email': validate_email(email)
+    })
 
     #?processing
     user = get_user_by_email(email)
-
+    
     #?response
     if user is None:
-        raise APIException("user not found in database", status_code=404)
-
-    # send_pwchange_email({"name": user.fname, "email": user.email})
-    response = JSONResponse("validation email sent to user")
-
+        raise APIException(
+            "user not found in database", 
+            status_code=404,
+        )
+    response = JSONResponse(message="user exists in database")
     return response.to_json()
 
 

@@ -1,25 +1,8 @@
 import functools
-from flask import (
-    session, redirect, url_for, request
-)
-from flask_jwt_extended import decode_token
+from flask import request
 from app.utils.exceptions import (
     APIException
 )
-
-
-def login_required(func): #login in flask app directly
-    ''' Validar si el usuario tiene acceso antes de continuar '''
-    @functools.wraps(func)
-    def wrapper_login_required(*args, **kwargs):
-        if session.get('token') is None:
-            return redirect(url_for("landing_bp.login"))
-        token = decode_token(session.token)
-        if token is None:
-            return redirect(url_for("landing_bp.login"))
-        
-        return func(*args, **kwargs)
-    return wrapper_login_required
 
 
 def json_required(required:dict=None, query_params:bool=False):

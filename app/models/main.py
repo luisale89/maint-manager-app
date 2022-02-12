@@ -20,7 +20,7 @@ class User(db.Model):
     email_confirmed = db.Column(db.Boolean)
     status = db.Column(db.String(12))
     #relations
-    work_relations = db.relationship('WorkRelation', back_populates='user', lazy=True)
+    # work_relations = db.relationship('WorkRelation', back_populates='user', lazy=True)
 
     def __repr__(self):
         # return '<User %r>' % self.id
@@ -67,7 +67,7 @@ class Company(db.Model):
     longitude = db.Column(db.Float(precision=8))
     registration_date = db.Column(db.DateTime, default=datetime.utcnow)
     #relationships
-    work_relations = db.relationship('WorkRelation', back_populates='company', lazy=True)
+    # work_relations = db.relationship('WorkRelation', back_populates='company', lazy=True)
     locations = db.relationship('Location', back_populates='company', lazy=True)
 
     def __repr__(self) -> str:

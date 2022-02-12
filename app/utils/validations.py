@@ -8,6 +8,7 @@ def validate_email(email: str) -> dict:
     Returns:
         {'error':bool, 'msg':error message}
     """
+
     if not isinstance(email, str):
         raise TypeError("Invalid argument format, str is expected")
 
@@ -31,6 +32,7 @@ def validate_pw(password: str) -> dict:
     Returns:
         {'error':bool, 'msg':error message}
     """
+
     if not isinstance(password, str):
         raise TypeError("Invalid argument format, str is expected")
     #Regular expression that checks a secure password
@@ -52,6 +54,7 @@ def only_letters(string:str, spaces:bool=False, max_length:int=64) -> dict:
     Returns:
         {'error':bool, 'msg':error message}
     """
+    
     #regular expression that checks only letters string
     sreg = '^[a-zA-ZñáéíóúÑÁÉÍÓÚ]*$'
     #regular expression that check letters and spaces in a string

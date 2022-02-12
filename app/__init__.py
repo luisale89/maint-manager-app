@@ -33,8 +33,8 @@ def create_app(test_config=None):
     # app.before_request(handle_before_rq)
         
     #extensions
-    assets.init_app(app)
     db.init_app(app)
+    assets.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
     cors.init_app(app, resources={r"/api/*": {"origins": "*"}})
