@@ -5,9 +5,9 @@ from app.extensions import db
 from app.models.main import (
     User
 )
-from app.models.global_models import (
-    TokenBlacklist
-)
+# from app.models.global_models import (
+#     TokenBlacklist
+# )
 from flask import jsonify
 
 
@@ -25,44 +25,6 @@ def get_user_by_email(email):
     '''
     user = User.query.filter_by(email=email).first()
     return user
-
-
-def revoke_all_jwt(user_identity:str):
-    '''
-    Revoke all tokens of an user. Usefull to logout everywhere.
-    params:
-    user_identity:str
-    '''
-    tokens = TokenBlacklist.query.filter_by(user_identity=user_identity, revoked=False).all()
-    for token in tokens:
-        token.revoked = True
-        token.revoked_date = datetime.utcnow()
-    db.session.commit()
-
-    pass
-
-
-def add_token_to_database(encoded_token):
-    """
-    Adds a new token to the database. It is not revoked when it is added.
-    :param encoded JWT
-    """
-    decoded_token = decode_token(encoded_token)
-    jti = decoded_token['jti']
-    token_type = decoded_token['type']
-    user_identity = decoded_token['sub']
-    expires = _epoch_utc_to_datetime(decoded_token['exp'])
-    revoked = False
-
-    db_token = TokenBlacklist(
-        jti=jti,
-        token_type=token_type,
-        user_identity=user_identity,
-        expires=expires,
-        revoked=revoked,
-    )
-    db.session.add(db_token)
-    db.session.commit()
 
 
 def normalize_names(name: str, spaces=False) -> str:
@@ -113,7 +75,7 @@ class JSONResponse():
         rv = {
             "result": self.app_status,
             "data": dict(self.data or ()),
-            "message": self.message #for debug in frontend
+            "message": self.message
         }
         return rv
 

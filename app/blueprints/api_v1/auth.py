@@ -195,22 +195,6 @@ def logout():
     resp = JSONResponse("user logged-out of current session")
     return resp.to_json()
 
-    # user_identity = get_jwt_identity()
-    # close = request.args.get('close')
-
-    # if close == 'all':
-    #     revoke_all_jwt(user_identity)
-    #     response = JSONResponse("user logged-out of all active sessions")
-    #     return response.to_json()
-    # else:
-    #     token_info = decode_token(request.headers.get('authorization').replace("Bearer ", ""))
-    #     db_token = TokenBlacklist.query.filter_by(jti=token_info['jti']).first()
-    #     db_token.revoked = True
-    #     db_token.revoked_date = datetime.utcnow()
-    #     db.session.commit()
-    #     response = JSONResponse("user logged-out of current session")
-    #     return response.to_json()
-
 
 @auth_bp.route('/email-query', methods=['GET']) #email
 @json_required({"email":str}, query_params=True) #validate inputs
@@ -247,7 +231,7 @@ def email_query():
     return response.to_json()
 
 
-@auth_bp.route('/verification-code-request', methods=['GET'])
+@auth_bp.route('/request-verification-code', methods=['GET'])
 @json_required({'email':str}, query_params=True)
 def verification_code_request():
     '''
@@ -266,14 +250,12 @@ def verification_code_request():
         raise APIException('User not found in database', status_code=404)
 
     random_code = randint(100000, 999999)
-    token_expire_time = datetime.timedelta(hours=1)
     token = create_access_token(
         identity=email, 
         additional_claims={
             'verification_code': random_code,
             'verification_token': True
-        }, 
-        expires_delta=token_expire_time
+        }
     )
 
     send_verification_email(verification_code=random_code, user={'fname': user.fname, 'email': user.email}) #503 error raised in funct definition
@@ -284,14 +266,13 @@ def verification_code_request():
             'user_fname': user.fname,
             'user_lname': user.lname,
             'user_email': user.email,
-            'verification_token': token,
-            'token_expires': str(token_expire_time)
+            'verification_token': token
     })
 
     return response.to_json()
 
 
-@auth_bp.route('/verification-code-check', methods=['PUT'])
+@auth_bp.route('/check-verification-code', methods=['PUT'])
 @json_required({'verification_code':int})
 @verification_token_required()
 def verification_code_check():
@@ -307,13 +288,11 @@ def verification_code_check():
     
     add_jwt_to_redis(claims) #invalida el uso del token
 
-    token_expire_time = datetime.timedelta(hours=1)
     verified_user_token = create_access_token(
         identity=claims['sub'], 
         additional_claims={
             'verified_token': True
-        }, 
-        expires_delta=token_expire_time
+        }
     )
 
 

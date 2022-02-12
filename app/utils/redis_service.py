@@ -24,9 +24,14 @@ def add_jwt_to_redis(claims):
     r = redis_client()
 
     jti = claims['jti']
-    print(helpers._epoch_utc_to_datetime(claims['exp']) - datetime.datetime.utcnow())
-    expires = datetime.timedelta(hours=1)
+    jwt_exp = helpers._epoch_utc_to_datetime(claims['exp'])
+    now_date = datetime.datetime.now()
 
+    if (jwt_exp < now_date):
+        raise exceptions.APIException("invalid jwt in request", status_code=405)
+    else:
+        expires = jwt_exp - now_date
+    print(expires) #debug
     try:
         r.set(jti, "", ex=expires)
     except :

@@ -2,7 +2,7 @@ import os
 from flask import Flask
 #blueprints
 from app.blueprints.api_v1 import (
-    auth, profile, maintenance
+    auth, profile
 )
 
 #extensions
@@ -41,7 +41,6 @@ def create_app(test_config=None):
     #API BLUEPRINTS
     app.register_blueprint(auth.auth_bp, url_prefix='/api/v1/auth')
     app.register_blueprint(profile.profile_bp, url_prefix='/api/v1/profile')
-    app.register_blueprint(maintenance.admin_bp, url_prefix='/api/v1/maintenance')
 
     return app
 
