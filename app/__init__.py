@@ -15,9 +15,7 @@ from app.utils.exceptions import (
     APIException
 )
 from app.utils.helpers import JSONResponse
-
-#models
-from app.models.global_models import (TokenBlacklist)
+from app.utils.redis_service import redis_client
 
 
 def create_app(test_config=None):
@@ -78,15 +76,14 @@ def handle_API_Exception(exception): #exception == APIException
 @jwt.token_in_blocklist_loader #check if a token is stored in the blocklist db.
 def check_if_token_revoked(jwt_header, jwt_payload):
     jti = jwt_payload['jti']
+    r = redis_client()
 
-    if jwt_payload.get('verification_token') is True:
-        return False #verification token will not be stored in database.
+    try:
+        token_in_redis = r.get(jti)
+    except:
+        raise APIException("connection error with redis service")
 
-    token = TokenBlacklist.query.filter_by(jti=jti).first()
-    if token is None:
-        return True
-    else:
-        return token.revoked
+    return token_in_redis is not None
 
 
 @jwt.revoked_token_loader

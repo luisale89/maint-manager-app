@@ -11,7 +11,6 @@ from app.models.global_models import (
 from flask import jsonify
 
 
-
 def _epoch_utc_to_datetime(epoch_utc):
     """
     Helper function for converting epoch timestamps (as stored in JWTs) into
@@ -64,13 +63,6 @@ def add_token_to_database(encoded_token):
     )
     db.session.add(db_token)
     db.session.commit()
-
-
-def add_token_to_redis(encoded_token):
-    
-    token = decode_token(encoded_token)
-    jti = token['JTI']
-
 
 
 def normalize_names(name: str, spaces=False) -> str:

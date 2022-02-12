@@ -1,3 +1,4 @@
+from crypt import methods
 import datetime
 from random import randint
 
@@ -12,9 +13,6 @@ from app.extensions import (
 from app.models.main import (
     User
 )
-from app.models.global_models import (
-    TokenBlacklist
-)
 #exceptions
 from sqlalchemy.exc import (
     IntegrityError, DataError
@@ -23,12 +21,11 @@ from app.utils.exceptions import APIException
 #jwt
 from werkzeug.security import check_password_hash
 from flask_jwt_extended import (
-    create_access_token, jwt_required, 
-    get_jwt_identity, decode_token, get_jwt
+    create_access_token, jwt_required, get_jwt
 )
 #utils
 from app.utils.helpers import (
-    normalize_names, add_token_to_database, get_user_by_email, revoke_all_jwt, JSONResponse
+    normalize_names, get_user_by_email, JSONResponse
 )
 from app.utils.validations import (
     validate_email, validate_pw, only_letters, validate_inputs
@@ -37,8 +34,9 @@ from app.utils.email_service import (
     send_verification_email
 )
 from app.utils.decorators import (
-    json_required
+    json_required, verification_token_required, verified_token_required
 )
+from app.utils.redis_service import add_jwt_to_redis
 
 
 auth_bp = Blueprint('auth_bp', __name__)
@@ -82,7 +80,6 @@ def signup():
     q_user = get_user_by_email(email)
 
     if q_user:
-        # raise APIException("User {} already exists".format(q_user.email), status_code=409)
         raise APIException(f"User {q_user.email} already exists", status_code=409)
 
     #?processing
@@ -102,8 +99,8 @@ def signup():
         raise APIException(e.orig.args[0], status_code=422) # integrityError or DataError info
 
     #?response
-    response = JSONResponse(message="New user created, email validation required", status_code=201)
-    return response.to_json()
+    resp = JSONResponse(message="New user created, email validation required", status_code=201)
+    return resp.to_json()
 
 
 @auth_bp.route('/login', methods=['POST']) #normal login
@@ -150,18 +147,19 @@ def login():
     if user.status is None or user.status != 'active':
         raise APIException("user is not active", status_code=402)
 
-    if not check_password_hash(user.password_hash, pw):
-        raise APIException("wrong password", status_code=403)
-
     if not user.email_confirmed:
         raise APIException("user's email not validated", status_code=401)
+
+    if not check_password_hash(user.password_hash, pw):
+        raise APIException("wrong password", status_code=403)
     
-    # additional_claims = {"w_relation": w_relation.id}
-    access_token = create_access_token(identity=email) #additional_claims=additional_claims
-    add_token_to_database(access_token)
+    access_token = create_access_token(
+        identity=email, 
+        additional_claims={'user_access_token': True}
+    )
 
     #?response
-    response = JSONResponse(
+    resp = JSONResponse(
         message="user logged in",
         payload={
             "user": user.serialize(),
@@ -170,7 +168,7 @@ def login():
         status_code=200
     )
 
-    return response.to_json()
+    return resp.to_json()
 
 
 @auth_bp.route('/logout', methods=['GET']) #logout user
@@ -185,31 +183,33 @@ def logout():
 
     methods:
         GET: si se accede a este endpoint con un GET req. se está solicitando una 
-        desconexión en la sesion actual. Si se desea eliminar todas las sesiones
-        activas, se debe agregar un parametro a la url en la forma:
-            ?close=all
+        desconexión en la sesion actual.
     Raises:
-        APIException
+        APIException -> 500 in case of connection error to redis service.
 
     Returns:
         json: information about the transaction.
     """
 
-    user_identity = get_jwt_identity()
-    close = request.args.get('close')
+    add_jwt_to_redis(get_jwt())
+    resp = JSONResponse("user logged-out of current session")
+    return resp.to_json()
 
-    if close == 'all':
-        revoke_all_jwt(user_identity)
-        response = JSONResponse("user logged-out of all active sessions")
-        return response.to_json()
-    else:
-        token_info = decode_token(request.headers.get('authorization').replace("Bearer ", ""))
-        db_token = TokenBlacklist.query.filter_by(jti=token_info['jti']).first()
-        db_token.revoked = True
-        db_token.revoked_date = datetime.utcnow()
-        db.session.commit()
-        response = JSONResponse("user logged-out of current session")
-        return response.to_json()
+    # user_identity = get_jwt_identity()
+    # close = request.args.get('close')
+
+    # if close == 'all':
+    #     revoke_all_jwt(user_identity)
+    #     response = JSONResponse("user logged-out of all active sessions")
+    #     return response.to_json()
+    # else:
+    #     token_info = decode_token(request.headers.get('authorization').replace("Bearer ", ""))
+    #     db_token = TokenBlacklist.query.filter_by(jti=token_info['jti']).first()
+    #     db_token.revoked = True
+    #     db_token.revoked_date = datetime.utcnow()
+    #     db.session.commit()
+    #     response = JSONResponse("user logged-out of current session")
+    #     return response.to_json()
 
 
 @auth_bp.route('/email-query', methods=['GET']) #email
@@ -293,17 +293,52 @@ def verification_code_request():
 
 @auth_bp.route('/verification-code-check', methods=['PUT'])
 @json_required({'verification_code':int})
-@jwt_required()
+@verification_token_required()
 def verification_code_check():
 
     # body = request.get_json(silent=True)
     # claims = get_jwt()
+    claims = get_jwt()
     code_in_request = request.get_json().get('verification_code')
-    code_in_token = get_jwt().get('verification_code')
+    code_in_token = claims.get('verification_code')
 
     if (code_in_request != code_in_token):
         raise APIException("invalid verification code")
     
-    resp = JSONResponse("code verification success")
+    add_jwt_to_redis(claims) #invalida el uso del token
+
+    token_expire_time = datetime.timedelta(hours=1)
+    verified_user_token = create_access_token(
+        identity=claims['sub'], 
+        additional_claims={
+            'verified_token': True
+        }, 
+        expires_delta=token_expire_time
+    )
+
+
+    resp = JSONResponse("code verification success", payload={'user_verified_token': verified_user_token})
     
+    return resp.to_json()
+
+
+@auth_bp.route("/confirm-user-email", methods=['GET'])
+@json_required()
+@verified_token_required()
+def user_email_verification():
+
+    claims = get_jwt()
+    user = get_user_by_email(claims['sub'])
+
+    user.email_confirmed = True
+
+    try:
+        db.session.commit()
+    except (IntegrityError, DataError) as e:
+        db.session.rollback()
+        raise APIException(e.orig.args[0], status_code=422) # integrityError or DataError info
+    
+    add_jwt_to_redis(claims)
+
+    resp = JSONResponse(message="user's email has been confirmed")
     return resp.to_json()

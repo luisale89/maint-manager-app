@@ -3,8 +3,10 @@ from flask import request
 from app.utils.exceptions import (
     APIException
 )
+from flask_jwt_extended import verify_jwt_in_request, get_jwt
 
 
+#decorator to be called every time an endpoint is reached
 def json_required(required:dict=None, query_params:bool=False):
     def decorator(func):
         @functools.wraps(func)
@@ -34,3 +36,50 @@ def json_required(required:dict=None, query_params:bool=False):
             return func(*args, **kwargs)
         return wrapper_func
     return decorator
+
+
+#decorator to grant access to general users.
+def user_required():
+    def wrapper(fn):
+        @functools.wraps(fn)
+        def decorator(*args, **kwargs):
+            verify_jwt_in_request()
+            claims = get_jwt()
+            if claims["user_access_token"]:
+                return fn(*args, **kwargs)
+            else:
+                raise APIException("invalid access token")
+
+        return decorator
+    return wrapper
+
+
+#decorator to grant access to get user verifications.
+def verification_token_required():
+    def wrapper(fn):
+        @functools.wraps(fn)
+        def decorator(*args, **kwargs):
+            verify_jwt_in_request()
+            claims = get_jwt()
+            if claims.get('verification_token'):
+                return fn(*args, **kwargs)
+            else:
+                raise APIException("invalid access token", payload={'required': 'verification_token'})
+
+        return decorator
+    return wrapper
+
+#decorator to grant access to verificated users only.
+def verified_token_required():
+    def wrapper(fn):
+        @functools.wraps(fn)
+        def decorator(*args, **kwargs):
+            verify_jwt_in_request()
+            claims = get_jwt()
+            if claims.get('verified_token'):
+                return fn(*args, **kwargs)
+            else:
+                raise APIException("invalid access token", payload={'required': 'verified_token'})
+
+        return decorator
+    return wrapper
