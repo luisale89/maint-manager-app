@@ -2,12 +2,12 @@
 .venv
 .vscode
 .theia
-*.rdb
+# *.rdb
 database.database
 database.db
 public/*
 dist/*
-migrations
+migrations/
 
 __pycache__
 __pycache__/*
