@@ -22,7 +22,7 @@ def json_required(required:dict=None, query_params:bool=False):
                     missing = [r for r in required.keys() if r not in _qparams]
                 else:             
                     if _json is None:
-                        raise APIException("missing all arguments in request body")
+                        raise APIException("invalid json in request body")
                     missing = [r for r in required.keys() if r not in _json]
 
                 if missing:
@@ -45,10 +45,10 @@ def user_required():
         def decorator(*args, **kwargs):
             verify_jwt_in_request()
             claims = get_jwt()
-            if claims["user_access_token"]:
+            if claims.get('user_access_token'):
                 return fn(*args, **kwargs)
             else:
-                raise APIException("invalid access token")
+                raise APIException("user-level access token required for this endpoint")
 
         return decorator
     return wrapper
@@ -64,7 +64,7 @@ def verification_token_required():
             if claims.get('verification_token'):
                 return fn(*args, **kwargs)
             else:
-                raise APIException("invalid access token", payload={'required': 'verification_token'})
+                raise APIException("verification access token required for this endpoint")
 
         return decorator
     return wrapper
@@ -79,7 +79,7 @@ def verified_token_required():
             if claims.get('verified_token'):
                 return fn(*args, **kwargs)
             else:
-                raise APIException("invalid access token", payload={'required': 'verified_token'})
+                raise APIException("verified access token required for this endpoint")
 
         return decorator
     return wrapper

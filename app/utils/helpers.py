@@ -1,13 +1,6 @@
 from datetime import datetime
 from flask_jwt_extended import decode_token
 
-from app.extensions import db
-from app.models.main import (
-    User
-)
-# from app.models.global_models import (
-#     TokenBlacklist
-# )
 from flask import jsonify
 
 
@@ -17,14 +10,6 @@ def _epoch_utc_to_datetime(epoch_utc):
     python datetime objects (which are easier to use with sqlalchemy).
     """
     return datetime.fromtimestamp(epoch_utc)
-
-
-def get_user_by_email(email):
-    '''
-    Helper function to get user from db, email parameter is required
-    '''
-    user = User.query.filter_by(email=email).first()
-    return user
 
 
 def normalize_names(name: str, spaces=False) -> str:

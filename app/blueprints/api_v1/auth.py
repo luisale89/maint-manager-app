@@ -25,7 +25,7 @@ from flask_jwt_extended import (
 )
 #utils
 from app.utils.helpers import (
-    normalize_names, get_user_by_email, JSONResponse
+    normalize_names, JSONResponse
 )
 from app.utils.validations import (
     validate_email, validate_pw, only_letters, validate_inputs
@@ -37,6 +37,7 @@ from app.utils.decorators import (
     json_required, verification_token_required, verified_token_required
 )
 from app.utils.redis_service import add_jwt_to_blocklist
+from app.utils.db_operations import get_user_by_email
 
 
 auth_bp = Blueprint('auth_bp', __name__)
@@ -77,10 +78,10 @@ def signup():
         'lname': only_letters(lname, spaces=True)
     })
 
-    q_user = get_user_by_email(email)
+    q_user = User.query.filter_by(email=email).first()
 
     if q_user:
-        raise APIException(f"User {q_user.email} already exists", status_code=409)
+        raise APIException(f"User {q_user.email} already exists in database", status_code=409)
 
     #?processing
     try:
@@ -141,8 +142,6 @@ def login():
 
     #?processing
     user = get_user_by_email(email)
-    if user is None:
-        raise APIException("user email not found in database", status_code=404)
 
     if user.status is None or user.status != 'active':
         raise APIException("user is not active", status_code=402)
@@ -153,6 +152,7 @@ def login():
     if not check_password_hash(user.password_hash, pw):
         raise APIException("wrong password", status_code=403)
     
+    #*user-access-token
     access_token = create_access_token(
         identity=email, 
         additional_claims={'user_access_token': True}
@@ -222,12 +222,7 @@ def email_query():
     user = get_user_by_email(email)
     
     #?response
-    if user is None:
-        raise APIException(
-            "user not found in database", 
-            status_code=404,
-        )
-    response = JSONResponse(message="user exists in database")
+    response = JSONResponse(message=f"email {user.email} exists in database")
     return response.to_json()
 
 
@@ -246,9 +241,6 @@ def verification_code_request():
     user = get_user_by_email(email)
 
     #response
-    if user is None:
-        raise APIException('User not found in database', status_code=404)
-
     random_code = randint(100000, 999999)
     token = create_access_token(
         identity=email, 

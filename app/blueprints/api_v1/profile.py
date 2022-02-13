@@ -1,31 +1,24 @@
 
-from urllib import response
-from flask import Blueprint, jsonify, request
-from flask_jwt_extended import (
-    jwt_required, get_jwt_identity
-)
+from flask import Blueprint, request
+from flask_jwt_extended import get_jwt_identity
+
 #extensions
 from app.extensions import db
-from sqlalchemy.exc import (
-    IntegrityError, DataError
-)
+from sqlalchemy.exc import IntegrityError, DataError
+
 #utils
 from app.utils.exceptions import APIException
-from app.utils.helpers import (
-    normalize_names, get_user_by_email, JSONResponse
-)
-from app.utils.validations import (
-    validate_inputs,
-    only_letters
-)
-from app.utils.decorators import json_required
+from app.utils.helpers import normalize_names, JSONResponse
+from app.utils.validations import validate_inputs, only_letters
+from app.utils.decorators import json_required, user_required
+from app.utils.db_operations import get_user_by_email
 
 profile_bp = Blueprint('profile_bp', __name__)
 
 
 @profile_bp.route('/', methods=['GET'])
 @json_required()
-@jwt_required()
+@user_required()
 def get_profile():
     """
     * PRIVATE ENDPOINT *
@@ -43,8 +36,6 @@ def get_profile():
     """
     identity = get_jwt_identity()
     user = get_user_by_email(identity) #get_jwt_indentity get the user id from jwt.
-    if user is None:
-        raise APIException(f"user {identity} not found", status_code=404)
 
     response = JSONResponse(
         message="user profile", 
@@ -58,12 +49,11 @@ def get_profile():
 
 @profile_bp.route('/update', methods=['PUT'])
 @json_required({"fname":str, "lname":str, "home_address":dict, "image":str, "phone":str})
-@jwt_required()
+@user_required()
 def update():
+
     identity = get_jwt_identity() #identity= user_email
     user = get_user_by_email(identity)
-    if user is None:
-        raise APIException('user', status_code=404)
 
     body = request.get_json(silent=True)
     fname, lname, home_address, image, phone = \
