@@ -1,7 +1,6 @@
-from crypt import methods
-import datetime
-from random import randint
 
+
+from random import randint
 from flask import (
     Blueprint, request
 )

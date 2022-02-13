@@ -6,6 +6,8 @@ from werkzeug.security import generate_password_hash
 from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.orm import backref
 
+from .global_models import (Role, Permit)
+
 class User(db.Model):
     __tablename__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
