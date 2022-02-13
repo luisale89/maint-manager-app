@@ -36,7 +36,7 @@ from app.utils.email_service import (
 from app.utils.decorators import (
     json_required, verification_token_required, verified_token_required
 )
-from app.utils.redis_service import add_jwt_to_redis
+from app.utils.redis_service import add_jwt_to_blocklist
 
 
 auth_bp = Blueprint('auth_bp', __name__)
@@ -191,7 +191,7 @@ def logout():
         json: information about the transaction.
     """
 
-    add_jwt_to_redis(get_jwt())
+    add_jwt_to_blocklist(get_jwt())
     resp = JSONResponse("user logged-out of current session")
     return resp.to_json()
 
@@ -286,7 +286,7 @@ def verification_code_check():
     if (code_in_request != code_in_token):
         raise APIException("invalid verification code")
     
-    add_jwt_to_redis(claims) #invalida el uso del token
+    add_jwt_to_blocklist(claims) #invalida el uso del token
 
     verified_user_token = create_access_token(
         identity=claims['sub'], 
@@ -317,7 +317,7 @@ def user_email_verification():
         db.session.rollback()
         raise APIException(e.orig.args[0], status_code=422) # integrityError or DataError info
     
-    add_jwt_to_redis(claims)
+    add_jwt_to_blocklist(claims)
 
     resp = JSONResponse(message="user's email has been confirmed")
     return resp.to_json()

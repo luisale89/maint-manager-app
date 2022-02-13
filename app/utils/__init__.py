@@ -4,5 +4,6 @@ __all__ = [
     "email_service",
     "exceptions",
     "helpers",
-    "validations"
+    "validations",
+    "redis_service"
 ]

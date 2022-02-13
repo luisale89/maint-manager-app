@@ -2,7 +2,7 @@
 .venv
 .vscode
 .theia
-# *.rdb
+*.rdb
 database.database
 database.db
 public/*

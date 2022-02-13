@@ -19,7 +19,7 @@ def redis_client():
     return r
 
 
-def add_jwt_to_redis(claims):
+def add_jwt_to_blocklist(claims):
 
     r = redis_client()
 
