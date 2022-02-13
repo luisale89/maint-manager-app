@@ -73,7 +73,7 @@ class Only_letters_validation_tests(unittest.TestCase):
         with self.assertRaises(TypeError):
             val.only_letters('normal', max_length='5')
 
-class input_validator_tests(unittest.TestCase):
+class Input_validator_tests(unittest.TestCase):
 
     def test1_error_inputs(self):
         with self.assertRaises(Exception):
