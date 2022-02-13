@@ -63,6 +63,8 @@ def only_letters(string:str, spaces:bool=False, max_length:int=64) -> dict:
         raise TypeError("Invalid argument format, str is expected")
     if not isinstance(spaces, bool):
         raise TypeError("Invalid argument format, bool is expected")
+    if not isinstance(max_length, int):
+        raise TypeError("Invalid argument format, int is expected")
 
     if len(string) > max_length:
         return {"error": True, "msg": "String is too long, {} length is allowed".format(max_length)}
