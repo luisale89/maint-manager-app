@@ -25,11 +25,28 @@
     }
     ```
 
-* *body*
-    ```javascript
-    null
+* *response*
+    - `http code: 200` - *success*
+    ```json
+    {
+        "data": {},
+        "message": "email {query-email} exists in database",
+        "app_status": "success"
+    }
     ```
-
-* *responses*
-    - success:
-        
+    - `http code: 404` - *not found*
+    ```json
+    {
+        "data": {},
+        "message": "email {query-email} not found in database",
+        "app_status": "error"
+    }
+    ```
+    - `http code: 400` - *bad request*
+    ```json 
+    {
+        "data": {},
+        "message": "invalid {email-query}",
+        "app_status": "error"
+    }
+    ```
