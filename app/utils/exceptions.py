@@ -3,10 +3,10 @@ from .helpers import JSONResponse
 
 class APIException(Exception, JSONResponse):
 
-    def __init__(self, message, app_status="error", status_code=400, payload=None): #default code 400
+    def __init__(self, message, app_result="error", status_code=400, payload=None): #default code 400
 
         Exception.__init__(self)
-        JSONResponse.__init__(self, message, app_status, status_code, payload)
+        JSONResponse.__init__(self, message, app_result, status_code, payload)
 
 
 class TokenNotFound(Exception):

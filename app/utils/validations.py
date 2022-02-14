@@ -19,7 +19,7 @@ def validate_email(email: str) -> dict:
     ereg = '^[\w]+[\._]?[\w]+[@]\w+[.]\w{2,3}$'
 
     if not re.search(ereg, email):
-        return {"error":True, "msg": "invalid email format"}
+        return {"error":True, "msg": f"invalid email format: <{email}>"}
     
     return {"error": False, "msg": "ok"}
 
@@ -72,11 +72,11 @@ def only_letters(string:str, spaces:bool=False, max_length:int=64) -> dict:
     if spaces:
         if not re.search(sregs, string):
             # raise APIException("Only letter is valid in str, {} was passed".format(string))
-            return {"error": True, "msg": "String must be only letters"}
+            return {"error": True, "msg": f"String: <{string}> must include only letters"}
     else: 
         if not re.search(sreg, string):
             # raise APIException("Only letter and no spaces is valid in str, {} was passed".format(string))
-            return {"error": True, "msg": "String must be only letters and no spaces"}
+            return {"error": True, "msg": f"String: <{string}> must include only letters and no spaces"}
     return {"error": False, "msg": "ok"}
 
 
@@ -94,16 +94,14 @@ def validate_inputs(inputs:dict):
         pass if ok or raise APIException on any error
     '''
     
-    error = []
     msg = {}
     if not isinstance(inputs, dict):
         raise TypeError("Invalid argument format, dict is expected")
     for r in inputs.keys():
         if inputs[r]['error']: 
-            error.append(r)
             msg[r] = inputs[r]['msg']
 
-    if error:
-        raise APIException("invalid input in request", payload={'invalid': error, 'msg': msg})
+    if msg:
+        raise APIException("invalid input in request", payload={'invalid': msg})
 
     return None

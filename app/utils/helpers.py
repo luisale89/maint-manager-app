@@ -39,7 +39,7 @@ class JSONResponse():
     Genera mensaje de respuesta a las solicitudes JSON. los parametros son:
 
     - message: Mesanje a mostrar al usuario.
-    - app_status = "success", "error"
+    - app_result = "success", "error"
     - status_code = http status code
     - payload = dict con cualquier informacion que se necesite enviar al usuario.
 
@@ -50,15 +50,15 @@ class JSONResponse():
 
     '''
 
-    def __init__(self, message, app_status="success", status_code=200, payload=None):
-        self.app_status = app_status
+    def __init__(self, message, app_result="success", status_code=200, payload=None):
+        self.app_result = app_result
         self.status_code = status_code
         self.data = payload
         self.message = message
 
     def serialize(self):
         rv = {
-            "result": self.app_status,
+            "result": self.app_result,
             "data": dict(self.data or ()),
             "message": self.message
         }

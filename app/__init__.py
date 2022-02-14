@@ -44,7 +44,7 @@ def create_app(test_config=None):
 
 
 def handle_http_error(e):
-    resp = JSONResponse(message=str(e), status_code=e.code, app_status='error')
+    resp = JSONResponse(message=str(e), status_code=e.code, app_result='error')
     return resp.to_json()
 
 
@@ -71,7 +71,7 @@ def check_if_token_revoked(jwt_header, jwt_payload):
 def expired_token_msg(jwt_header, jwt_payload):
     rsp = JSONResponse(
         message="token has been revoked or has expired",
-        app_status="error",
+        app_result="error",
         payload={"invalid": "jwt"}
     )
     return rsp.to_json()
@@ -81,7 +81,7 @@ def expired_token_msg(jwt_header, jwt_payload):
 def invalid_token_msg(error):
     rsp = JSONResponse(
         message=error,
-        app_status="error",
+        app_result="error",
         payload={"invalid": "jtw"}
     )
     return rsp.to_json()
@@ -91,7 +91,7 @@ def invalid_token_msg(error):
 def missing_token_msg(error):
     rsp = JSONResponse(
         message=error,
-        app_status="error",
+        app_result="error",
         payload={"invalid": "jwt"}
     )
     return rsp.to_json()

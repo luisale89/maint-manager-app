@@ -199,11 +199,6 @@ def logout():
 def email_query():
     """
     * PUBLIC ENDPOINT *
-    requerido: query string with email: ?email=xx@xx.com
-    respuesta: {
-        email_exists: bool === False if email is not found in db
-        user: dict, => user info, if email exists
-    }
     raised status codes {
         inputs error: 400,
         user not found: 404,
@@ -220,7 +215,7 @@ def email_query():
     user = get_user_by_email(email)
     
     #?response
-    response = JSONResponse(message=f"email {user.email} exists in database")
+    response = JSONResponse(message=f"email: {user.email} found in database")
     return response.to_json()
 
 
