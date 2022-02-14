@@ -82,7 +82,7 @@ def update_profile():
     resp = JSONResponse(message="user's profile updated", payload={"user": user.serialize()})
     return resp.to_json()
 
-
+#building
 @profile_bp.route('/update-password', methods=['PUT'])
 @json_required({"current_password":str, "new_password":str})
 @user_required()

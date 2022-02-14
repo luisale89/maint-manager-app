@@ -170,7 +170,7 @@ def login():
     return resp.to_json()
 
 
-@auth_bp.route('/logout', methods=['GET']) #logout user
+@auth_bp.route('/logout', methods=['DELETE']) #logout user
 @json_required()
 @user_required()
 def logout():
@@ -180,7 +180,7 @@ def logout():
     HACIENDO LA PETICIÓN.
 
     methods:
-        GET: si se accede a este endpoint con un GET req. se está solicitando una 
+        DELETE: si se accede a este endpoint con un GET req. se está solicitando una 
         desconexión en la sesion actual.
     Raises:
         APIException -> 500 in case of connection error to db service.
