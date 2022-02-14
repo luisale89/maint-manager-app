@@ -47,24 +47,12 @@ auth_bp = Blueprint('auth_bp', __name__)
 def signup():
     """
     * PUBLIC ENDPOINT *
-    Crear un nuevo usuario para la aplicación, tomando en cuenta que este usuario también debe 
-    crear una compañía, es decir, todo usuario que complete el formulario de sign-up será un 
-    administrador de su propia compañía.
+    Crea un nuevo usuario para la aplicación
     requerido: {
         "email": str,
         "password": str,
         "fname": str,
         "lname": str
-    }
-    respuesta: {
-        "success":"created", 200
-    }
-
-    raised status codes {
-        inputs error: 400
-        user already exists: 409
-        smtp service error: 503
-        error in database session: 422
     }
     """
 
@@ -112,24 +100,6 @@ def login():
         "email": email, <str>
         "password": password, <str>
     }
-    respuesta: {
-        "access_token": jwt_access_token,
-        "user": {
-            "fname": string,
-            "lname": string,
-            "image": url,
-            "home_address": dict,
-            "personal_phone": string,
-        }
-    }
-    raised status codes {
-        invalid inputs: 400
-        user not found: 404,
-        invalid password: 403,
-        user inactive: 402,
-        user email not validated: 401
-        smtp service error: 503,
-    }
     """
     body = request.get_json(silent=True)
     email, pw = body['email'].lower(), body['password']
@@ -175,18 +145,11 @@ def login():
 @user_required()
 def logout():
     """
-    PERMITE AL USUARIO DESCONECTARSE DE LA APP, ESE ENDPOINT SE ENCARGA
-    DE AGREGAR A LA BLOCKLIST EL O LOS TOKENS DEL USUARIO QUE ESTÁ
+    ! PRIVATE ENDPOINT !
+    PERMITE AL USUARIO DESCONECTARSE DE LA APP, ESTE ENDPOINT SE ENCARGA
+    DE AGREGAR A LA BLOCKLIST EL TOKEN DEL USUARIO QUE ESTÁ
     HACIENDO LA PETICIÓN.
 
-    methods:
-        DELETE: si se accede a este endpoint con un GET req. se está solicitando una 
-        desconexión en la sesion actual.
-    Raises:
-        APIException -> 500 in case of connection error to db service.
-
-    Returns:
-        json: information about the transaction.
     """
 
     add_jwt_to_blocklist(get_jwt())
@@ -194,37 +157,13 @@ def logout():
     return resp.to_json()
 
 
-@auth_bp.route('/email-query', methods=['GET']) #email
-@json_required({"email":str}, query_params=True) #validate inputs
-def email_query():
-    """
-    * PUBLIC ENDPOINT *
-    raised status codes {
-        inputs error: 400,
-        user not found: 404,
-        user exists in app: 200
-    }
-    """
-
-    email = str(request.args.get('email'))
-    validate_inputs({
-        'email': validate_email(email)
-    })
-
-    #?processing
-    user = get_user_by_email(email)
-    
-    #?response
-    response = JSONResponse(message=f"email: {user.email} found in database")
-    return response.to_json()
-
-
 @auth_bp.route('/request-verification-code', methods=['GET'])
 @json_required({'email':str}, query_params=True)
 def request_verification_code():
-    '''
+    """
+    * PUBLIC ENDPOINT *
     Endpoint to request a new verification code to restar the password or to validate a user email.
-    '''
+    """
     email = str(request.args.get('email'))
     validate_inputs({
         'email': validate_email(email)
@@ -261,12 +200,13 @@ def request_verification_code():
 @json_required({'verification_code':int})
 @verification_token_required()
 def check_verification_code():
-    '''
-    endpoint: {{auth_bp}}/check-verification-code
+    """
+    ! PRIVATE ENDPOINT !
+    endpoint: /check-verification-code
     methods: [PUT]
     description: endpoint to validate user's verification code sent to them by email.
 
-    '''
+    """
     # body = request.get_json(silent=True)
     # claims = get_jwt()
     claims = get_jwt()
@@ -295,12 +235,13 @@ def check_verification_code():
 @json_required()
 @verified_token_required()
 def confirm_user_email():
-    '''
-    endpoint: {{auth_bp}}/confirm-user-email
+    """
+    ! PRIVATE ENDPOINT !
+    endpoint: /confirm-user-email
     methods: [PUT]
     description: endpoint to confirm user email, verified_token required..
 
-    '''
+    """
     claims = get_jwt()
     user = get_user_by_email(claims['sub'])
 
@@ -322,12 +263,13 @@ def confirm_user_email():
 @json_required({"new_password":str})
 @verified_token_required()
 def change_forgotten_password():
-    '''
-    endpoint: {{auth_bp}}/change-password
+    """
+    ! PRIVATE ENDPOINT !
+    URL: /change-forgotten-password
     methods: [PUT]
     description: endpoint to change user's password.
 
-    '''
+    """
     claims = get_jwt()
     new_password = request.get_json().get('new_password')
 

@@ -12,7 +12,7 @@ def json_required(required:dict=None, query_params:bool=False):
         @functools.wraps(func)
         def wrapper_func(*args, **kwargs):
             if not request.is_json:
-                raise APIException("Missing header in request" ,payload={"missing":{"content-type":"application-json"}})
+                raise APIException("Missing header in request" ,payload={"missing":{"content-type":"application/json"}})
 
             if required is not None:
                 _json = request.get_json(silent=True)
