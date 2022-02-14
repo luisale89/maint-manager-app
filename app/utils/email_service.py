@@ -57,12 +57,8 @@ class Email_api_service():
             r = requests.post(headers=self.header(), json=self.body(), url=smtp_api_url, timeout=3)
             r.raise_for_status()
 
-        except ConnectionError:
+        except (ConnectionError, HTTPError):
             raise APIException("Connection error to smtp server", status_code=503)
-
-        except HTTPError:
-            # return {"msg": r.json(), "sent": False}
-            raise APIException("HTTP Error", status_code=503)
 
         pass
 

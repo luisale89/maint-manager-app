@@ -14,15 +14,15 @@ def api_status_ckeck():
 
     try:
         Role.query.get(1)
-    except Exception:
-        raise APIException(message="main database service is down", app_status="error", status_code=500)
+    except:
+        raise APIException(message="postgresql service is down", app_status="error", status_code=500)
 
     try:
         r = redis_client()
-        r.keys()
+        r.ping()
 
-    except Exception:
+    except:
         raise APIException(message="redis service is down", app_status="error", status_code=500)
 
-    resp = JSONResponse("app online", app_status="success")
+    resp = JSONResponse("app online")
     return resp.to_json()

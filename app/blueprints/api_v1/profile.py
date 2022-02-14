@@ -37,14 +37,14 @@ def get_profile():
     identity = get_jwt_identity()
     user = get_user_by_email(identity) #get_jwt_indentity get the user id from jwt.
 
-    response = JSONResponse(
+    resp = JSONResponse(
         message="user profile", 
         payload={
             "user": user.serialize(), 
             "identity": identity
         })
 
-    return response.to_json()
+    return resp.to_json()
 
 
 @profile_bp.route('/update', methods=['PUT'])
@@ -52,8 +52,7 @@ def get_profile():
 @user_required()
 def update():
 
-    identity = get_jwt_identity() #identity= user_email
-    user = get_user_by_email(identity)
+    user = get_user_by_email(get_jwt_identity()) #jwt identity = user_email
 
     body = request.get_json(silent=True)
     fname, lname, home_address, image, phone = \
@@ -79,5 +78,5 @@ def update():
         db.session.rollback()
         raise APIException(e.orig.args[0], status_code=422) # integrityError or DataError info
     
-    response = JSONResponse(message="user's profile updated", payload={"user": user.serialize()})
-    return response.to_json()
+    resp = JSONResponse(message="user's profile updated", payload={"user": user.serialize()})
+    return resp.to_json()

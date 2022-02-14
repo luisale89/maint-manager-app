@@ -35,6 +35,6 @@ def add_jwt_to_blocklist(claims):
     try:
         r.set(jti, "", ex=expires)
     except :
-        raise exceptions.APIException("connection error with redis host", status_code=500)
+        raise exceptions.APIException("connection error with redis server", status_code=500)
 
     pass

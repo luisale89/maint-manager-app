@@ -16,7 +16,7 @@ from app.utils.exceptions import (
 )
 from app.utils.helpers import JSONResponse
 from app.utils.redis_service import redis_client
-
+from werkzeug.exceptions import HTTPException
 
 def create_app(test_config=None):
     ''' Application-Factory Pattern '''
@@ -24,11 +24,9 @@ def create_app(test_config=None):
     if test_config == None:
         app.config.from_object(os.environ['APP_SETTINGS'])
     
-    app.register_error_handler(404, handle_not_found)
-    app.register_error_handler(405, handle_not_allowed)
-    app.register_error_handler(500, handle_internal_error)
+    #error hanlders
+    app.register_error_handler(HTTPException, handle_http_error)
     app.register_error_handler(APIException, handle_API_Exception)
-    # app.before_request(handle_before_rq)
         
     #extensions
     db.init_app(app)
@@ -36,7 +34,6 @@ def create_app(test_config=None):
     migrate.init_app(app, db)
     jwt.init_app(app)
     cors.init_app(app, resources={r"/api/*": {"origins": "*"}})
-
 
     #API BLUEPRINTS
     app.register_blueprint(auth.auth_bp, url_prefix='/api/v1/auth')
@@ -46,25 +43,8 @@ def create_app(test_config=None):
     return app
 
 
-def handle_not_found(e):
-    ''' Función que permite devolver 404 en json para solicitud de 
-    API
-    '''
-    resp = JSONResponse(message=str(e), app_status='error', status_code=404)
-    return resp.to_json()
-
-
-def handle_not_allowed(e):
-    ''' Función que permite devolver 405 en json para solicitud de 
-    API  '''
-    resp = JSONResponse(message=str(e), app_status='error', status_code=405)
-    return resp.to_json()
-
-
-def handle_internal_error(e):
-    ''' Función que permite devolver 405 en json para solicitud de 
-    API  '''
-    resp = JSONResponse(message=str(e), app_status='error', status_code = 500)
+def handle_http_error(e):
+    resp = JSONResponse(message=str(e), status_code=e.code, app_status='error')
     return resp.to_json()
 
 
@@ -81,7 +61,7 @@ def check_if_token_revoked(jwt_header, jwt_payload):
     try:
         token_in_redis = r.get(jti)
     except:
-        raise APIException("connection error with redis service")
+        raise APIException("connection error with redis service", status_code=500)
 
     return token_in_redis is not None
 

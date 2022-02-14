@@ -20,7 +20,7 @@ from app.utils.exceptions import APIException
 #jwt
 from werkzeug.security import check_password_hash
 from flask_jwt_extended import (
-    create_access_token, jwt_required, get_jwt
+    create_access_token, get_jwt
 )
 #utils
 from app.utils.helpers import (
@@ -33,7 +33,7 @@ from app.utils.email_service import (
     send_verification_email
 )
 from app.utils.decorators import (
-    json_required, verification_token_required, verified_token_required
+    json_required, verification_token_required, verified_token_required, user_required
 )
 from app.utils.redis_service import add_jwt_to_blocklist
 from app.utils.db_operations import get_user_by_email
@@ -172,10 +172,9 @@ def login():
 
 @auth_bp.route('/logout', methods=['GET']) #logout user
 @json_required()
-@jwt_required()
+@user_required()
 def logout():
     """
-    ! PRIVATE ENDPOINT
     PERMITE AL USUARIO DESCONECTARSE DE LA APP, ESE ENDPOINT SE ENCARGA
     DE AGREGAR A LA BLOCKLIST EL O LOS TOKENS DEL USUARIO QUE ESTÁ
     HACIENDO LA PETICIÓN.
@@ -184,7 +183,7 @@ def logout():
         GET: si se accede a este endpoint con un GET req. se está solicitando una 
         desconexión en la sesion actual.
     Raises:
-        APIException -> 500 in case of connection error to redis service.
+        APIException -> 500 in case of connection error to db service.
 
     Returns:
         json: information about the transaction.
@@ -252,7 +251,7 @@ def verification_code_request():
     send_verification_email(verification_code=random_code, user={'fname': user.fname, 'email': user.email}) #503 error raised in funct definition
 
     response = JSONResponse(
-        'verification code sent to user', 
+        message='verification code sent to user', 
         payload={
             'user_fname': user.fname,
             'user_lname': user.lname,
@@ -267,7 +266,12 @@ def verification_code_request():
 @json_required({'verification_code':int})
 @verification_token_required()
 def verification_code_check():
+    '''
+    endpoint: {{auth_bp}}/check-verification-code
+    methods: [PUT]
+    description: endpoint to validate user's verification code sent to them by email.
 
+    '''
     # body = request.get_json(silent=True)
     # claims = get_jwt()
     claims = get_jwt()
@@ -296,7 +300,12 @@ def verification_code_check():
 @json_required()
 @verified_token_required()
 def user_email_verification():
+    '''
+    endpoint: {{auth_bp}}/confirm-user-email
+    methods: [PUT]
+    description: endpoint to confirm user email, verified_token required..
 
+    '''
     claims = get_jwt()
     user = get_user_by_email(claims['sub'])
 
