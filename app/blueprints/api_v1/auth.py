@@ -226,7 +226,7 @@ def email_query():
 
 @auth_bp.route('/request-verification-code', methods=['GET'])
 @json_required({'email':str}, query_params=True)
-def verification_code_request():
+def request_verification_code():
     '''
     Endpoint to request a new verification code to restar the password or to validate a user email.
     '''
@@ -265,7 +265,7 @@ def verification_code_request():
 @auth_bp.route('/check-verification-code', methods=['PUT'])
 @json_required({'verification_code':int})
 @verification_token_required()
-def verification_code_check():
+def check_verification_code():
     '''
     endpoint: {{auth_bp}}/check-verification-code
     methods: [PUT]
@@ -281,7 +281,7 @@ def verification_code_check():
     if (code_in_request != code_in_token):
         raise APIException("invalid verification code")
     
-    add_jwt_to_blocklist(claims) #invalida el uso del token
+    add_jwt_to_blocklist(claims) #invalida el uso del token una vez se haya validado del codigo
 
     verified_user_token = create_access_token(
         identity=claims['sub'], 
@@ -299,7 +299,7 @@ def verification_code_check():
 @auth_bp.route("/confirm-user-email", methods=['GET'])
 @json_required()
 @verified_token_required()
-def user_email_verification():
+def confirm_user_email():
     '''
     endpoint: {{auth_bp}}/confirm-user-email
     methods: [PUT]
@@ -320,4 +320,36 @@ def user_email_verification():
     add_jwt_to_blocklist(claims)
 
     resp = JSONResponse(message="user's email has been confirmed")
+    return resp.to_json()
+
+
+@auth_bp.route("/change-forgotten-password", methods=['PUT'])
+@json_required({"new_password":str})
+@verified_token_required()
+def change_forgotten_password():
+    '''
+    endpoint: {{auth_bp}}/change-password
+    methods: [PUT]
+    description: endpoint to change user's password.
+
+    '''
+    claims = get_jwt()
+    new_password = request.get_json().get('new_password')
+
+    validate_inputs({
+        'password': validate_pw(new_password)
+    })
+
+    user = get_user_by_email(claims['sub'])
+    
+    user.password = new_password
+
+    try:
+        db.session.commit()
+    except (IntegrityError, DataError) as e:
+        raise APIException(e.orig.args[0], status_code=422)
+
+    add_jwt_to_blocklist(claims)
+
+    resp = JSONResponse(message="user's password updated")
     return resp.to_json()
