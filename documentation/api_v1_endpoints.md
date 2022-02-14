@@ -1,30 +1,35 @@
 # API v1 endpoints
-
-Documentacion sobre los endpoints de la app.
-
-#
-
-## auth endpoints
-
-```base_url = {{URL}}/api/v1/auth```
-
-### 1. email-query endpoint - open endpoint
 ---
-endpoint para consultar la existencia de un email en la app
 
-**headers**
+`** auth endpoints **`
+---
 
-```json
-{
-    "content-type": "application/json"
-}
-```
 
-**endpoint**
+1. `GET` **email-query**
 
-```http
-GET {{base_url}}/email-query?email={{valid_email}}
-```
+    endpoint para consultar la existencia de un email en la app
 
-**response**
+* *url*
+    ```http
+    GET /api/v1/auth/email-query?email="valid@email"
+    ```
 
+    | Parameter | Type | Description |
+    | :--- | :--- | :--- |
+    | `email` | `string` | **Required**. query email |
+
+* *headers*
+    ```json
+    {
+        "content-type":"application/json"
+    }
+    ```
+
+* *body*
+    ```javascript
+    null
+    ```
+
+* *responses*
+    - success:
+        
