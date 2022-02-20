@@ -84,7 +84,7 @@ def signup():
         db.session.commit()
     except (IntegrityError, DataError) as e:
         db.session.rollback()
-        raise APIException(e.orig.args[0], status_code=422) # integrityError or DataError info
+        raise APIException(e.orig.args[0], status_code=500) # integrityError or DataError info
 
     #?response
     resp = JSONResponse(message="New user created, email validation required", status_code=201)

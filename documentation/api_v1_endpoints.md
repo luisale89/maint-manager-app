@@ -5,7 +5,7 @@
 ```json
     {
         "data": {},
-        "message": "msg...",
+        "message": "<error message info>",
         "result": "error"
     }
 ```
@@ -14,38 +14,29 @@
 ```json
     {
         "data": {},
-        "message": "msg...",
+        "message": "<error message info>",
         "result": "error"
     }
 ```
-
-* *bad request* -> `http code: 400`
-```json
-    {
-        "data": {},
-        "message": "msg...",
-        "result": "error"
-    }
-```
-
 
 ---
 `** auth endpoints **`
 ---
 
 
-## `GET` **email-query**
+## `POST` **sign-up**
 
-    endpoint para consultar la existencia de un email en la app
+    endpoint para crear un nuevo usuario en la base de datos
 
 * *url*
     ```http
-    GET /api/v1/auth/email-query?email="valid@email"
+    POST /api/v1/auth/sign-up
     ```
 
     | Parameter | Type | Description | Required
     | :--- | :--- | :--- | :---
-    | `email` | `string` | query email | `True`
+    | | | | 
+***
 
 * *headers*
     ```json
@@ -54,32 +45,51 @@
     }
     ```
 
+* *JSON body*
+    ```json
+    {
+        "email": "<user_email>",
+        "password": "<user_password>",
+        "fname": "<user_first_name>",
+        "lname": "<user_last_name>"
+    }
+    ```
+
+    | Parameter | Type | Description | Required
+    | :--- | :--- | :--- | :---
+    | "email" | `string` | user email | `True` 
+    | "password" | `string` | user password | `True`
+    | "fname" | `string` | user first name (only letters) | `True`
+    | "lname" | `string` | user last name (only letters) | `True`
+
+
 * *JSON responses*
-    - *email found* -> `http code: 200`
+    - *email alredy exists* -> `http code: 409`
     ```json
     {
         "data": {},
-        "message": "msg...",
-        "result": "success"
+        "message": "<error message info>",
+        "result": "error"
     }
     ```
-    - *email not found* -> `http code: 404`
+    - *bad input format* -> `http code: 400`
     ```json
-    {
-        "data": {},
-        "message": "msg...",
-        "result": "q_not_found"
-    }
-    ```
-    - *invalid email format* -> `http code: 400`
-    ```json 
     {
         "data": {
             "invalid": {
-                "email": "msg..."
-            },
+                "<parameter1>": "<invalid parameter message>",
+                "<parameter2>": "<invalid parameter message>"
+            }
         },
-        "message": "msg...",
+        "message": "<error message info>",
         "result": "error"
+    }
+    ```
+    - *new user created* -> `http code: 201`
+    ```json 
+    {
+        "data": {},
+        "message": "<success message>",
+        "result": "success"
     }
     ```
