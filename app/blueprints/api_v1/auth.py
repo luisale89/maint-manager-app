@@ -157,9 +157,9 @@ def logout():
     return resp.to_json()
 
 
-@auth_bp.route('/request-verification-code', methods=['GET'])
+@auth_bp.route('/get-verification-code', methods=['GET'])
 @json_required({'email':str}, query_params=True)
-def request_verification_code():
+def get_verification_code():
     """
     * PUBLIC ENDPOINT *
     Endpoint to request a new verification code to restar the password or to validate a user email.
@@ -259,13 +259,13 @@ def confirm_user_email():
     return resp.to_json()
 
 
-@auth_bp.route("/change-forgotten-password", methods=['PUT'])
+@auth_bp.route("/password-change", methods=['PUT'])
 @json_required({"new_password":str})
 @verified_token_required()
-def change_forgotten_password():
+def password_change():
     """
     ! PRIVATE ENDPOINT !
-    URL: /change-forgotten-password
+    URL: /change-password
     methods: [PUT]
     description: endpoint to change user's password.
 

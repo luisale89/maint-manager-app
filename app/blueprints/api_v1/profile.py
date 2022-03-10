@@ -1,5 +1,3 @@
-
-from crypt import methods
 from flask import Blueprint, request
 from flask_jwt_extended import get_jwt_identity
 
@@ -80,13 +78,4 @@ def update_profile():
         raise APIException(e.orig.args[0], status_code=422) # integrityError or DataError info
     
     resp = JSONResponse(message="user's profile updated", payload={"user": user.serialize()})
-    return resp.to_json()
-
-#building
-@profile_bp.route('/update-password', methods=['PUT'])
-@json_required({"current_password":str, "new_password":str})
-@user_required()
-def update_password():
-
-    resp = JSONResponse("buidling...")
     return resp.to_json()
