@@ -72,7 +72,8 @@ def expired_token_msg(jwt_header, jwt_payload):
     rsp = JSONResponse(
         message="token has been revoked or has expired",
         app_result="error",
-        payload={"invalid": "jwt"}
+        payload={"invalid": "jwt"},
+        status_code=401
     )
     return rsp.to_json()
 
@@ -82,7 +83,8 @@ def invalid_token_msg(error):
     rsp = JSONResponse(
         message=error,
         app_result="error",
-        payload={"invalid": "jtw"}
+        payload={"invalid": "jtw"},
+        status_code=401
     )
     return rsp.to_json()
 
@@ -92,6 +94,7 @@ def missing_token_msg(error):
     rsp = JSONResponse(
         message=error,
         app_result="error",
-        payload={"invalid": "jwt"}
+        payload={"invalid": "jwt"},
+        status_code=401
     )
     return rsp.to_json()
