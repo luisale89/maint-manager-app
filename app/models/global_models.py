@@ -1,19 +1,17 @@
-
-from email.policy import default
 from app.extensions import db
 from datetime import datetime
 from sqlalchemy.orm import backref
+from sqlalchemy.dialects.postgresql import JSON
 
 
 class Role(db.Model):
     __tablename__ = "role"
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(128))
-    global_role = db.Column(db.Boolean)
+    name = db.Column(db.String(128), unique=True, nullable=False)
+    code = db.Column(db.String(128), unique=True, nullable=False)
+    global_role = db.Column(db.Boolean, default=False)
     creation_date = db.Column(db.DateTime, default=datetime.utcnow)
-    creator_user_id = db.Column(db.Integer)
-    #relations
-    permits = db.relationship('Permit', back_populates='role', lazy=True)
+    permits = db.Column(JSON, default={'create': True, 'read': True, 'update': True, 'delete': True})
 
     def __repr__(self) -> str:
         return f"<Role {self.name}>"
@@ -24,59 +22,88 @@ class Role(db.Model):
             'name': self.name,
             'global_role': self.global_role,
             'creation_date': self.creation_date,
-            'creator_user_id': self.creator_user_id,
+            'permits': self.permits
         }
 
-    def serialize_features(self) -> dict:
-        return {
-            'features': list(map(lambda x : dict(
-                {**x.serialize_feature(), 'permits': x.serialize()}
-            ), self.permits))
-        }
+    def add_default_roles():
+        commit = False
+        admin = Role.query.filter_by(code='admin').first() #administrador
+        if admin is None:
+            admin = Role(
+                name = 'Administrador', 
+                code='admin', 
+                global_role=True
+                #default permits
+            )
+            
+            db.session.add(admin)
+            commit = True
+
+        tech = Role.query.filter_by(code='tech').first() #tecnico ejecutor de mantenimientos
+        if tech is None:
+            tech = Role(
+                name='Tecnico', 
+                code='tech', 
+                global_role=True,
+                permits = {'create': False, 'read': True, 'update': True, 'delete': False}
+            )
+
+            db.session.add(tech)
+            commit = True
+
+        obs = Role.query.filter_by(code='obs').first() #observador de datos, solo lectura
+        if obs is None:
+            obs = Role(
+                name='Observador', 
+                code = 'obs', 
+                global_role=True,
+                permits = {'create': False, 'read': True, 'update': False, 'delete': False}
+            )
+
+            db.session.add(obs)
+            commit = True
+
+        if commit:
+            db.session.commit()
+        
+        pass
 
 
-class Permit(db.Model):
-    __tablename__ = "permit"
+class Plan(db.Model):
+    __tablename__ = 'plan'
     id = db.Column(db.Integer, primary_key=True)
-    create = db.Column(db.Boolean, default=False)
-    read = db.Column(db.Boolean, default=False)
-    update = db.Column(db.Boolean, default=False)
-    delete = db.Column(db.Boolean, default=False)
-    role_id = db.Column(db.Integer, db.ForeignKey('role.id'))
-    feature_id = db.Column(db.Integer, db.ForeignKey('feature.id'))
-    #relations
-    role = db.relationship('Role', back_populates='permits', lazy=True)
-    feature = db.relationship('Feature', back_populates='permits', lazy=True)
+    name = db.Column(db.String(128), nullable=False, unique=True)
+    code = db.Column(db.String(128), unique=True, nullable=False)
+    creation_date = db.Column(db.DateTime, default=datetime.utcnow)
+    limits = db.Column(JSON, default={'assets': 20, 'admin': 1, 'tech': 1, 'obs': 'nl'})
 
     def __repr__(self) -> str:
-        return f'<Permit {self.id}>'
-
-    def serialize(self) -> dict:
-        return {
-            'create': self.create,
-            'read': self.read,
-            'update': self.update,
-            'delete': self.delete
-        }
-
-    def serialize_feature(self) -> dict:
-        return self.feature.serialize()
-
-
-class Feature(db.Model):
-    __tablename__ = "feature"
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(128))
-    description = db.Column(db.Text)
-    #relations
-    permits = db.relationship('Permit', back_populates='feature', lazy=True)
-
-    def __repr__(self) -> str:
-        return f'<Feature {self.name}>'
+        return f"<Role {self.name}>"
 
     def serialize(self) -> dict:
         return {
             'id': self.id,
             'name': self.name,
-            'description': self.description
+            'code': self.code,
+            'creation_date': self.creation_date,
+            'limits': self.limits
         }
+
+    def add_default_plans():
+        
+        commit = False
+        basic = Plan.query.filter_by(code='basic').first()
+        if basic is None:
+            basic = Plan(
+                name = 'Plan Basico',
+                code = 'basic'
+                #default limits
+            )
+            
+            db.session.add(basic)
+            commit = True
+
+        if commit:
+            db.session.commit()
+
+        pass

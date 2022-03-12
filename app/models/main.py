@@ -6,7 +6,7 @@ from werkzeug.security import generate_password_hash
 from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.orm import backref
 
-from .global_models import (Role, Permit)
+from .global_models import (Role, Plan)
 
 class User(db.Model):
     __tablename__ = 'user'
@@ -47,6 +47,10 @@ class User(db.Model):
             "phone": self.phone,
             "email_confirmed": self.email_confirmed
         }
+
+    def check_user_exists(email):
+        return User.query.filter_by(email=email).first()
+
 
     @property
     def password(self):

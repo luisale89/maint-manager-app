@@ -12,6 +12,9 @@ from app.utils.validations import validate_inputs, only_letters
 from app.utils.decorators import json_required, user_required
 from app.utils.db_operations import get_user_by_email
 
+#models
+from app.models.main import User
+
 profile_bp = Blueprint('profile_bp', __name__)
 
 
@@ -34,7 +37,10 @@ def get_profile():
         }
     """
     identity = get_jwt_identity()
-    user = get_user_by_email(identity) #get_jwt_indentity get the user id from jwt.
+    # user = get_user_by_email(identity) #get_jwt_indentity get the user id from jwt.
+    user = get_user_by_email(email=identity)
+    if user is None:
+        raise APIException(f"email: {identity} not found in database", status_code=404, app_result="q_not_found")
 
     resp = JSONResponse(
         message="user profile", 

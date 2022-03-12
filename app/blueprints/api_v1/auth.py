@@ -65,7 +65,7 @@ def signup():
         'lname': only_letters(lname, spaces=True)
     })
 
-    q_user = User.query.filter_by(email=email).first()
+    q_user = User.check_user_exists(email=email)
 
     if q_user:
         raise APIException(f"User {q_user.email} already exists in database", status_code=409)
