@@ -83,3 +83,18 @@ def verified_token_required():
 
         return decorator
     return wrapper
+
+#decorator to grant access to super users.
+def super_user_required():
+    def wrapper(fn):
+        @functools.wraps(fn)
+        def decorator(*args, **kwargs):
+            verify_jwt_in_request()
+            claims = get_jwt()
+            if claims.get('super_user'):
+                return fn(*args, **kwargs)
+            else:
+                raise APIException("super-user access token required for this endpoint")
+
+        return decorator
+    return wrapper

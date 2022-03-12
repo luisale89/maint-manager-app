@@ -264,8 +264,7 @@ def confirm_user_email():
 @verified_token_required()
 def password_change():
     """
-    ! PRIVATE ENDPOINT !
-    URL: /change-password
+    URL: /password-change
     methods: [PUT]
     description: endpoint to change user's password.
 
@@ -289,4 +288,63 @@ def password_change():
     add_jwt_to_blocklist(claims)
 
     resp = JSONResponse(message="user's password updated")
+    return resp.to_json()
+
+
+@auth_bp.route('/login/super-user', methods=['POST']) #super-user login
+@json_required({"password":str})
+@verified_token_required()
+def login_super_user():
+    """
+    * VERIFIED TOKEN ONLY *
+    requerido: {
+        "password": password, <str>
+    }
+    """
+    body = request.get_json(silent=True)
+    pw = body['password']
+
+    validate_inputs({
+        'password': validate_pw(pw)
+    })
+
+    claims = get_jwt()
+    email = claims['sub']
+    user = get_user_by_email(email)
+
+    if email != 'luis.lucena89@gmail.com': #? debug - se debe agregar una condicion valida para produccion..
+        raise APIException("unauthorized user", status_code=401, app_result='invalid su')
+
+    #?processing
+
+    if user.status is None or user.status != 'active':
+        raise APIException("user is not active", status_code=402)
+
+    if not user.email_confirmed:
+        raise APIException("user's email not validated", status_code=401)
+
+    if not check_password_hash(user.password_hash, pw):
+        raise APIException("wrong password", status_code=403)
+    
+    #*super-user_access-token
+    access_token = create_access_token(
+        identity=email, 
+        additional_claims={
+            'user_access_token': True,
+            'super_user': True
+        }
+    )
+
+    add_jwt_to_blocklist(claims)
+
+    #?response
+    resp = JSONResponse(
+        message="super user logged in",
+        payload={
+            "user": user.serialize(),
+            "access_token": access_token
+        },
+        status_code=200
+    )
+
     return resp.to_json()
