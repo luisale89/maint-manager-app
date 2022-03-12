@@ -94,7 +94,7 @@ def super_user_required():
             if claims.get('super_user'):
                 return fn(*args, **kwargs)
             else:
-                raise APIException("super-user access token required for this endpoint")
+                raise APIException("super-user access token required for this endpoint", status_code=401)
 
         return decorator
     return wrapper
