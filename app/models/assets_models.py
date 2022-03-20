@@ -28,13 +28,13 @@ class Asset(db.Model):
             'description': self.description,
         }
 
-    def serialize_path(self) -> dict:
+    def serialize_path(self) -> dict: #path to root
         return {
             ** self.serialize(),
             'parent': self.parent.serialize_path() if self.parent is not None else 'root'
         }
 
-    def serialize_children(self) -> dict: #1 level children
+    def serialize_children(self) -> dict:
         return {
             'children': list(map(lambda x: x.serialize(), self.children))
         }
